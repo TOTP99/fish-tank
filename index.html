@@ -7,159 +7,111 @@
 <title>大鱼缸 · 生态版</title>
 <style>
 :root{
-  --frame:#2b2118;--frame-hi:#4a3a26;--ink:#eef6f8;--muted:#9fb8bd;
-  --gold:#e0b25a;--gold-line:rgba(224,178,90,.55);
+  --ink:#eef6f8; --muted:#9fb8bd; --gold:#e0b25a;
+  --glass:rgba(8,20,27,.72); --line:rgba(111,190,205,.28);
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;width:100%;background:#0a0d10;overflow:hidden;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-body{
-  display:flex;align-items:center;justify-content:center;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+body{display:flex;align-items:center;justify-content:center;
   height:100vh;height:100dvh;max-height:100dvh;
   padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right))
-          max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
-}
-#app{
-  display:flex;align-items:center;justify-content:center;
-  width:100%;height:100%;
-}
-#stage{
-  position:relative;flex:0 0 auto;min-height:0;min-width:0;
-  border-radius:22px;padding:3px;
+          max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+#app{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+#stage{position:relative;flex:0 0 auto;border-radius:22px;padding:3px;
   background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.02) 30%,rgba(0,0,0,.3));
-  box-shadow:
-    0 36px 70px -14px rgba(0,0,0,.7),
-    0 12px 28px rgba(0,0,0,.55),
-    0 0 0 1px rgba(255,255,255,.06),
-    inset 0 1px 0 rgba(255,255,255,.18),
-    inset 0 -3px 8px rgba(0,0,0,.35);
-  overflow:hidden;
-}
-#tankWrap{
-  position:relative;width:100%;height:100%;border-radius:19px;overflow:hidden;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.12),
-    inset 0 10px 30px rgba(0,0,0,.5),
-    inset 0 -6px 16px rgba(0,0,0,.35);
-  touch-action:none;
-}
-#tankWrap::before{
-  content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
-  background:linear-gradient(115deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.06) 14%,transparent 30%,transparent 78%,rgba(255,255,255,.05) 100%);
-  mix-blend-mode:screen;
-}
+  box-shadow:0 36px 70px -14px rgba(0,0,0,.7),0 12px 28px rgba(0,0,0,.55),
+    0 0 0 1px rgba(255,255,255,.06),inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -3px 8px rgba(0,0,0,.35);overflow:hidden}
+#tankWrap{position:relative;width:100%;height:100%;border-radius:19px;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 10px 30px rgba(0,0,0,.5),
+    inset 0 -6px 16px rgba(0,0,0,.35);touch-action:none}
+#tankWrap::before{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;
+  background:linear-gradient(115deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.05) 14%,
+    transparent 30%,transparent 78%,rgba(255,255,255,.05) 100%);mix-blend-mode:screen}
 canvas{display:block;width:100%;height:100%;touch-action:none}
-#hud{
-  position:absolute;top:6px;left:0;right:0;
-  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  padding:0 6px;pointer-events:none;
-}
-#titleWrap{
-  display:flex;flex-direction:column;align-items:center;gap:1px;
-  background:rgba(0,0,0,.3);padding:3px 10px;border-radius:10px;
-  text-align:center;
-}
-#title{color:var(--gold);font-weight:800;font-size:11px;letter-spacing:.35px;
-  text-shadow:0 1px 3px rgba(0,0,0,.6);line-height:1.2}
-#credit{color:var(--gold);font-size:8px;font-weight:600;opacity:.85;
-  letter-spacing:.12em;line-height:1.2;text-align:center}
-#btnAddFish{
-  border:1px solid rgba(255,200,100,.45);border-radius:10px;
-  padding:4px 8px;font-size:10px;font-weight:800;cursor:pointer;
-  background:linear-gradient(160deg,var(--gold),#a9782f);color:#231705;
-}
-#btnAddFish:active{transform:scale(.94)}
-#popStatHud{
-  font-size:10px;font-weight:700;color:var(--ink);
-  background:rgba(0,0,0,.35);padding:4px 8px;border-radius:8px;
-  text-shadow:0 1px 2px rgba(0,0,0,.6);
-  line-height:1.35;word-break:break-word;
-  max-width:100%;min-height:1.35em;overflow:hidden;
-}
-#wqAlert{
-  position:absolute;left:50%;top:12%;transform:translateX(-50%);
-  pointer-events:none;z-index:5;font-size:11px;font-weight:800;color:#fff;
-  background:rgba(180,40,30,.88);padding:5px 12px;border-radius:10px;
-  opacity:0;transition:opacity .35s;white-space:nowrap;
-}
-#wqAlert.show{opacity:1}
-#gestureToast{
-  position:absolute;left:50%;bottom:8%;transform:translateX(-50%);
-  pointer-events:none;z-index:6;font-size:12px;font-weight:800;color:#fff;
-  background:rgba(20,80,60,.85);padding:6px 14px;border-radius:12px;
-  opacity:0;transition:opacity .25s,transform .25s;white-space:nowrap;
-}
-#gestureToast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-#sideDisplay,#sideControls{
-  width:100%;border-radius:12px;padding:8px 10px;
-}
-#sideControls{
-  border:1px solid var(--gold-line);
-  background:linear-gradient(165deg,#1c1610,#120e0a);
-  box-shadow:0 4px 16px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04);
-}
-#sideDisplay{
-  border:1px solid transparent;background:transparent;box-shadow:none;
-}
-#sideDisplay{display:flex;flex-direction:column;gap:6px}
-#sideControls{display:flex;flex-direction:column;gap:7px}
-.ctrl-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:5px}
-button,.ctrl-stat{
-  border:1px solid rgba(255,255,255,.12);border-radius:10px;
-  padding:5px 8px;font-size:10px;font-weight:700;cursor:pointer;
-  background:linear-gradient(160deg,#2c2115,#1c150d);color:var(--ink);
-  box-shadow:0 2px 6px rgba(0,0,0,.3);transition:transform .12s,color .15s,border-color .15s;
-  display:inline-flex;align-items:center;justify-content:center;gap:4px;line-height:1.2;
-  white-space:nowrap;flex:0 0 auto;min-width:4.5em;
-}
-button:active{transform:scale(.94)}
-button.gold{background:linear-gradient(160deg,var(--gold),#a9782f);color:#231705;border-color:var(--gold)}
-#btnFilter{min-width:5.5em}
-.ctrl-stat{cursor:default;user-select:none;min-width:0}
-#wqMonitor{font-size:9px;font-weight:700;color:var(--ink);line-height:1.3;padding:2px;
-  text-shadow:0 1px 2px rgba(0,0,0,.5);min-height:1.3em;
-  white-space:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-#wqMonitor::-webkit-scrollbar{display:none}
-#wqMonitor.warn{color:#e8c45a}
-#wqMonitor.danger{color:#ff8a7a;animation:pulseDanger 1.2s ease-in-out infinite}
-@keyframes pulseDanger{0%,100%{opacity:1}50%{opacity:.75}}
-.bar{width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.12);
-  overflow:hidden;display:inline-block;vertical-align:middle}
-.bar>i{display:block;height:100%;border-radius:3px;transition:width .3s,background .3s}
-/* professional aquarium console */
-#sideDisplay,#sideControls{background:linear-gradient(180deg,rgba(20,35,42,.96),rgba(8,20,27,.96));border:1px solid rgba(111,190,205,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 6px 18px rgba(0,0,0,.22)}
-.console-head{display:flex;justify-content:space-between;align-items:center;color:#a9dbe5;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-.console-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.metric{background:rgba(0,0,0,.22);border:1px solid rgba(126,190,205,.15);border-radius:7px;padding:6px 8px;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px}
-.metric b{display:block;color:#e8f8fb;font-size:15px;line-height:1.2;white-space:nowrap}.metric span{display:block;color:#87aab3;font-size:10px;margin-top:0;text-align:right;white-space:nowrap}
-.console-led{display:inline-block;width:6px;height:6px;border-radius:50%;background:#45e58a;box-shadow:0 0 8px #45e58a;margin-right:4px}
-#sideControls .ctrl-row{gap:7px}#sideControls button{border-color:rgba(120,190,205,.3);background:linear-gradient(180deg,#1b3c46,#10252d);color:#d9f4f7;font-weight:800}
 
-/* —— 悬浮统一控制/显示菜单（三击鱼缸唤出，半透明） —— */
-#menuOverlay{
-  position:fixed;inset:0;z-index:50;
-  display:none;align-items:center;justify-content:center;
-  padding:16px;
-}
-#menuOverlay.show{display:flex}
-#menuPanel{
-  position:relative;width:min(94vw,640px);max-height:92vh;max-height:92dvh;
-  overflow:auto;-webkit-overflow-scrolling:touch;
-  background:rgba(14,28,36,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(111,190,205,.45);border-radius:18px;
-  padding:14px 14px 18px;display:flex;flex-direction:column;gap:10px;
-  box-shadow:0 24px 70px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
-}
-#menuPanel #sideDisplay,#menuPanel #sideControls{
-  background:rgba(10,22,28,.35);
-}
-#btnCloseMenu{
-  min-width:0;width:22px;height:22px;padding:0;border-radius:50%;
-  font-size:12px;line-height:1;background:rgba(255,255,255,.15);border:none;color:#e8f8fb;
-}
-@media (orientation:landscape) and (min-width:640px){
-  #menuPanel{display:grid;grid-template-columns:1fr 1fr;align-items:start;}
-}
+/* —— 左上生态仪表盘 —— */
+/* —— 生态仪表盘: 默认收成小药丸, 点开看详情 —— */
+#dash{position:absolute;top:8px;left:8px;z-index:6}
+#dashPill{display:flex;align-items:center;gap:6px;border:1px solid rgba(120,190,205,.35);
+  border-radius:999px;background:rgba(8,18,26,.38);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);color:#d9f4f7;font-size:11px;font-weight:800;
+  padding:5px 10px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+#dashPill:active{transform:scale(.94)}
+#dashPill .dot{width:8px;height:8px;border-radius:50%;background:#3dcc7a}
+#dashPill.warn{border-color:rgba(255,90,70,.75);animation:pillPulse 1.2s infinite}
+@keyframes pillPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,90,70,.55)}
+  50%{box-shadow:0 0 0 7px rgba(255,90,70,0)}}
+#dashPanel{display:none;margin-top:6px;background:rgba(8,18,26,.55);
+  border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-width:172px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 8px 22px rgba(0,0,0,.4)}
+#dash.open #dashPanel{display:block}
+#dash .credit{color:var(--gold);font-size:9px;font-weight:800;letter-spacing:.14em;
+  text-align:center;margin-bottom:5px}
+.drow{display:flex;align-items:center;gap:6px;margin:3px 0}
+.drow .lab{font-size:10px;color:var(--muted);width:2em;flex:0 0 auto;font-weight:700}
+.dbar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+.dbar>i{display:block;height:100%;border-radius:3px;transition:width .4s}
+.dval{font-size:10px;color:var(--ink);width:3em;text-align:right;font-weight:700;
+  font-variant-numeric:tabular-nums}
+#dash .meta{display:flex;justify-content:space-between;align-items:center;margin-top:4px;
+  font-size:11px;color:var(--ink);font-weight:700}
+#advice{margin-top:4px;font-size:10px;color:var(--gold);font-weight:700;line-height:1.4;
+  max-width:170px}
+
+/* —— 底部工具栏 —— */
+#toolbar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:6;
+  display:flex;gap:6px;padding:7px 9px;background:var(--glass);
+  border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.45);
+  max-width:calc(100% - 20px);overflow-x:auto;scrollbar-width:none}
+#toolbar::-webkit-scrollbar{display:none}
+#toolbar button{flex:0 0 auto;border:1px solid rgba(120,190,205,.3);border-radius:11px;
+  background:linear-gradient(180deg,#1b3c46,#10252d);color:#d9f4f7;
+  font-size:12px;font-weight:800;padding:8px 10px;cursor:pointer;white-space:nowrap;
+  transition:transform .12s}
+#toolbar button:active{transform:scale(.93)}
+#toolbar button.on{border-color:#3dcc7a;color:#7dffab;
+  box-shadow:0 0 10px rgba(61,204,122,.35)}
+#toolbar button.warn{border-color:rgba(255,120,90,.55);color:#ffb3a0}
+
+/* —— 顶部警报 —— */
+#alert{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:7;
+  pointer-events:none;font-size:12px;font-weight:800;color:#fff;white-space:nowrap;
+  background:rgba(180,40,30,.92);padding:6px 14px;border-radius:11px;
+  opacity:0;transition:opacity .3s;box-shadow:0 4px 16px rgba(180,40,30,.4)}
+#alert.show{opacity:1}
+
+/* —— 事件 toast —— */
+#toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:7;
+  pointer-events:none;font-size:12px;font-weight:800;color:#fff;white-space:nowrap;
+  background:rgba(20,80,60,.9);padding:7px 15px;border-radius:12px;
+  opacity:0;transition:opacity .25s,transform .25s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+/* —— 更多面板 —— */
+#panel{position:fixed;inset:0;z-index:50;display:none;align-items:center;
+  justify-content:center;padding:18px;background:rgba(0,0,0,.45)}
+#panel.show{display:flex}
+#panelBox{width:min(92vw,420px);max-height:88vh;max-height:88dvh;overflow:auto;
+  background:rgba(12,26,34,.96);border:1px solid rgba(111,190,205,.45);
+  border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;
+  box-shadow:0 24px 70px rgba(0,0,0,.6);color:var(--ink)}
+#panelBox h3{margin:0;font-size:14px;color:var(--gold);display:flex;
+  justify-content:space-between;align-items:center}
+#panelBox h3 button{background:rgba(255,255,255,.12);border:none;color:#fff;
+  width:24px;height:24px;border-radius:50%;font-size:13px;cursor:pointer}
+#panelBox .sec{font-size:11px;line-height:1.7;color:var(--muted)}
+#panelBox .sec b{color:var(--ink)}
+#panelBox .prow{display:flex;gap:8px;flex-wrap:wrap}
+#panelBox .prow button{flex:1 1 auto;border:1px solid rgba(120,190,205,.3);
+  border-radius:10px;background:linear-gradient(180deg,#1b3c46,#10252d);
+  color:#d9f4f7;font-size:12px;font-weight:800;padding:9px 6px;cursor:pointer}
+#panelBox .prow button.danger{border-color:rgba(255,120,90,.6);color:#ffb3a0}
+#panelBox .prow button:active{transform:scale(.95)}
 </style>
 </head>
 <body>
@@ -167,1451 +119,1271 @@ button.gold{background:linear-gradient(160deg,var(--gold),#a9782f);color:#231705
   <div id="stage">
     <div id="tankWrap">
       <canvas id="tank"></canvas>
-      <div id="hud">
-        <div id="titleWrap">
-          <span id="credit">TP制作🐠</span>
+      <div id="dash">
+        <button id="dashPill" aria-label="生态仪表盘">
+          <span class="dot" id="dQ"></span><span class="dot" id="dO"></span><span class="dot" id="dW"></span>
+          <span id="dashMini">--</span>
+        </button>
+        <div id="dashPanel">
+        <div class="credit">TP制作🐠</div>
+        <div class="drow"><span class="lab">水质</span><span class="dbar"><i id="qFill"></i></span><span class="dval" id="qVal">--</span></div>
+        <div class="drow"><span class="lab">氧气</span><span class="dbar"><i id="oFill"></i></span><span class="dval" id="oVal">--</span></div>
+        <div class="drow"><span class="lab">废物</span><span class="dbar"><i id="wFill"></i></span><span class="dval" id="wVal">--</span></div>
+        <div class="meta"><span id="fishVal">🐟 3</span><span id="dayVal">☀️</span><span id="filterVal">🌀关</span></div>
+        <div id="advice"></div>
         </div>
       </div>
-      <div id="wqAlert"></div>
-      <div id="gestureToast"></div>
+      <div id="alert"></div>
+      <div id="toast"></div>
+      <div id="toolbar">
+        <button id="tFeed">🍤 投食</button>
+        <button id="tWater">💧 换水</button>
+        <button id="tFilter">🌀 过滤</button>
+        <button id="tAdd">🐟 加鱼</button>
+        <button id="tDay">🌗 昼夜</button>
+        <button id="tMore">⚙️ 更多</button>
+      </div>
     </div>
   </div>
 </div>
 
-<div id="menuOverlay">
-  <div id="menuPanel">
-    <div id="sideDisplay">
-      <div class="console-head">
-        <span>◈ AQUA CONTROL</span>
-        <span>
-          <i class="console-led"></i>ONLINE
-          <button type="button" id="btnCloseMenu" title="关闭" style="margin-left:6px;">✕</button>
-        </span>
-      </div>
-      <div id="popStatHud">🐟 3</div>
-      <div id="wqMonitor">水质监测 · 优秀</div>
-      <div class="console-grid">
-        <div class="metric"><b id="tempRead">24.0°C</b><span>TEMP</span></div>
-        <div class="metric"><b id="phRead">7.2</b><span>pH</span></div>
-        <div class="metric"><b id="nutRead">25%</b><span>NUTRIENTS</span></div>
-        <div class="metric"><b id="oxRead">85%</b><span>OXYGEN</span></div>
-      </div>
-      <div class="ctrl-row">
-        <button type="button" id="btnAddFish" title="添加大金鱼">🐟+</button>
-        <span class="ctrl-stat">水质 <span class="bar"><i id="wqBar"></i></span></span>
-        <button type="button" id="btnFeed" class="gold" title="投食">🍤 投食</button>
-        <span class="ctrl-stat">氧气 <span class="bar"><i id="oxBar"></i></span></span>
-      </div>
+<div id="panel">
+  <div id="panelBox">
+    <h3>⚙️ 鱼缸管理 <button id="pClose">✕</button></h3>
+    <div class="prow">
+      <button id="pTrim">🌿 修剪水草</button>
+      <button id="pFrenzy" class="danger">🦖 乌龟狂暴(危险)</button>
+      <button id="pReset">↺ 重置鱼缸</button>
     </div>
-    <div id="sideControls">
-      <div class="ctrl-row">
-        <button id="btnFilter">🌀 过滤</button>
-        <button id="btnWater">💧 换水</button>
-        <button id="btnCycle">🌗 昼/夜</button>
-        <button id="btnTrim">🌿 修剪</button>
-      </div>
-      <div class="ctrl-row" style="font-size:9px;opacity:.75;font-weight:600;justify-content:center;text-align:center;line-height:1.5;">
-        <span>手势提示：长按 = 菜单 &nbsp;·&nbsp; 点击 = 投食(可连点多投) &nbsp;·&nbsp; 画圈 = 换水 &nbsp;·&nbsp; 画✅ = 开/关过滤 &nbsp;·&nbsp; ←划→ = 修剪 &nbsp;·&nbsp; →划← = 乌龟疯狂吃鱼 &nbsp;·&nbsp; ↓划↑ = 昼/夜 &nbsp;·&nbsp; ↑划↓ = 加鱼</span>
-      </div>
+    <div class="sec">
+      <b>生态是怎么运转的</b><br>
+      · 投食 → 鱼吃饱 → 产生废物 → 废物多了水质变差<br>
+      · 水草吸收废物、白天释放氧气；过滤机 24 小时净化+增氧<br>
+      · 废物爆表或缺氧，鱼会生病甚至死亡；尸体要尽快被乌龟清理掉<br>
+      · 鱼吃饱、心情好、水质佳时会在水草边产卵，颜色会遗传混搭
     </div>
+    <div class="sec">
+      <b>操作</b><br>
+      · 点一下鱼缸 = 在点击处投食（可连点）<br>
+      · 长按鱼缸 = 打开这个面板<br>
+      · 工具栏按钮 = 投食 / 换水 / 开关过滤 / 加鱼 / 切换昼夜
+    </div>
+    <div class="sec">⚠️ 乌龟狂暴模式下乌龟会攻击所有鱼，慎用。</div>
   </div>
 </div>
 
 <script>
 "use strict";
+/* ================= 工具 ================= */
 const canvas = document.getElementById("tank");
 const ctx = canvas.getContext("2d", { alpha: false });
-let W = 0, H = 0, DPR = 1;
-const staticCanvas = document.createElement("canvas");
-const staticCtx = staticCanvas.getContext("2d");
-let staticDirty = true;
-
-let _resizeT = 0;
-function resize() {
-  const rect = canvas.parentElement.getBoundingClientRect();
-  const nw = Math.max(1, Math.floor(rect.width));
-  const nh = Math.max(1, Math.floor(rect.height));
-  const ndpr = Math.min(window.devicePixelRatio || 1, 2);
-  if (nw === W && nh === H && ndpr === DPR) return;
-  DPR = ndpr; W = nw; H = nh;
-  canvas.width = W * DPR; canvas.height = H * DPR;
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  staticCanvas.width = W * DPR; staticCanvas.height = H * DPR;
-  staticCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  staticDirty = true;
-}
-function scheduleResize() {
-  clearTimeout(_resizeT);
-  _resizeT = setTimeout(resize, 50);
-}
-window.addEventListener("resize", scheduleResize);
-window.addEventListener("orientationchange", scheduleResize);
-resize();
-
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-let isNight = false, t = 0;
-const surfaceY = () => H * 0.10;
-const floorY = () => H * 0.87;
+const lerp = (a, b, u) => a + (b - a) * u;
+function hexRgb(h){
+  if(h[0]==="#"){const p=parseInt(h.slice(1),16);return [(p>>16)&255,(p>>8)&255,p&255];}
+  const m=h.match(/\d+/g);return m?[+m[0],+m[1],+m[2]]:[0,0,0]; // 也接受 rgb(r,g,b)
+}
+function lerpColor(a,b,u){ u=clamp(u,0,1); const A=hexRgb(a),B=hexRgb(b);
+  return `rgb(${(A[0]+(B[0]-A[0])*u)|0},${(A[1]+(B[1]-A[1])*u)|0},${(A[2]+(B[2]-A[2])*u)|0})`; }
 
-/* —— ecosystem —— */
-let waterQuality = 0.92, nutrients = 0.25, oxygen = 0.85, filterOn = false;
-const MAX_FISH = 12, MAX_EGGS = 8, MAX_BUBBLES = 40;
-const wqHistory = [];
-let wqLastGrade = "excellent", wqAlertTimer = 0, wqSampleAcc = 0;
+let W=0,H=0,DPR=1,t=0;
+const staticCanvas=document.createElement("canvas");
+const staticCtx=staticCanvas.getContext("2d");
+let staticDirty=true,lastDayness=-1;
+const surfaceY=()=>H*0.10, floorY=()=>H*0.87;
 
-function plantCoverAt(x, y) {
-  let best = 0;
-  const fy = floorY();
-  for (const p of plants) {
-    const px = W * p.xFrac, py = fy - H * p.h * 0.45;
-    const rad = 22 + p.h * H * 0.22;
-    const d = Math.hypot(x - px, y - py);
-    if (d < rad) best = Math.max(best, (1 - d / rad) * p.health * Math.min(1, p.h / p.baseH));
-  }
-  return best;
+function resize(){
+  const r=canvas.parentElement.getBoundingClientRect();
+  const nw=Math.max(1,Math.floor(r.width)), nh=Math.max(1,Math.floor(r.height));
+  const nd=Math.min(window.devicePixelRatio||1,2);
+  if(nw===W&&nh===H&&nd===DPR) return;
+  DPR=nd;W=nw;H=nh;
+  canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  staticCanvas.width=W*DPR;staticCanvas.height=H*DPR;staticCtx.setTransform(DPR,0,0,DPR,0,0);
+  staticDirty=true;
 }
+let _rt=0;
+function scheduleResize(){clearTimeout(_rt);_rt=setTimeout(resize,50);}
+window.addEventListener("resize",scheduleResize);
+window.addEventListener("orientationchange",scheduleResize);
+resize();
 
-function wqGrade(q) {
-  if (q >= 0.75) return { id: "excellent", label: "优秀", cls: "" };
-  if (q >= 0.55) return { id: "good", label: "良好", cls: "" };
-  if (q >= 0.35) return { id: "fair", label: "一般", cls: "warn" };
-  if (q >= 0.18) return { id: "poor", label: "较差", cls: "warn" };
-  return { id: "critical", label: "危险", cls: "danger" };
-}
-function wqTrend() {
-  if (wqHistory.length < 4) return "→";
-  const d = wqHistory[wqHistory.length - 1] - wqHistory[Math.max(0, wqHistory.length - 6)];
-  return d > 0.03 ? "↑" : d < -0.03 ? "↓" : "→";
-}
-function wqAdvice() {
-  const tips = [];
-  if (waterQuality < 0.55 && !filterOn) tips.push("开过滤");
-  if (waterQuality < 0.45) tips.push("换水");
-  if (nutrients > 0.7) tips.push("残饵多");
-  if (oxygen < 0.35) tips.push("缺氧");
-  if (fishes.filter(f => f.alive).length > 7) tips.push("过密");
-  if (foods.filter(f => !f.eaten && f.age > 6).length > 2) tips.push("清残饵");
-  return tips.slice(0, 2).join(" · ") || "稳定";
-}
-function pushWqSample() {
-  wqHistory.push(waterQuality);
-  if (wqHistory.length > 24) wqHistory.shift();
-  const g = wqGrade(waterQuality);
-  if (g.id !== wqLastGrade) {
-    if (g.id === "critical") showWqAlert("⚠ 水质危险！请换水或开过滤");
-    else if (g.id === "poor") showWqAlert("水质下降，注意监测");
-    else if (wqLastGrade === "critical" || wqLastGrade === "poor") showWqAlert("水质开始回升");
-    wqLastGrade = g.id;
-  }
-}
-function showWqAlert(msg) {
-  const el = document.getElementById("wqAlert");
-  el.textContent = msg;
-  el.classList.add("show");
-  wqAlertTimer = 3.2;
+/* ================= 音效 ================= */
+let AC=null;
+function ac(){ try{
+  if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
+  if(AC.state==="suspended")AC.resume(); return AC;
+}catch(_){return null;} }
+function blip(freq=480,dur=0.14,vol=0.1,type="sine"){
+  const c=ac(); if(!c)return;
+  try{
+    const t0=c.currentTime,o=c.createOscillator(),g=c.createGain();
+    o.type=type;o.frequency.setValueAtTime(freq,t0);
+    o.frequency.exponentialRampToValueAtTime(Math.max(40,freq*0.6),t0+dur);
+    g.gain.setValueAtTime(0.001,t0);
+    g.gain.exponentialRampToValueAtTime(vol,t0+0.012);
+    g.gain.exponentialRampToValueAtTime(0.001,t0+dur);
+    o.connect(g).connect(c.destination);o.start(t0);o.stop(t0+dur+0.02);
+  }catch(_){}
 }
 
-function lerpColor(a, b, u) {
-  u = clamp(u, 0, 1);
-  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-  const r = (((pa >> 16) & 255) * (1 - u) + ((pb >> 16) & 255) * u) | 0;
-  const g = (((pa >> 8) & 255) * (1 - u) + ((pb >> 8) & 255) * u) | 0;
-  const bl = ((pa & 255) * (1 - u) + (pb & 255) * u) | 0;
-  return `rgb(${r},${g},${bl})`;
-}
+/* ================= 生态状态 =================
+   废物(waste): 鱼代谢+残饵+尸体 → 上升; 水草+过滤+换水 → 下降
+   水质(quality): 由废物和密度推导, 平滑跟随 —— 看得见因果
+   氧气(oxygen): 白天水草产氧, 过滤增氧, 鱼呼吸消耗 */
+let waste=0.22, quality=0.9, oxygen=0.85, filterOn=false;
+let dayness=1, dayTarget=1;            // 1=白天 0=夜晚, 平滑过渡
+const isNight=()=>dayTarget<0.5;
+const MAX_FISH=12, MAX_EGGS=8, MAX_BUBBLES=46;
 
-/* —— water —— */
-function drawWater() {
-  const sy = surfaceY(), fy = floorY(), murk = 1 - waterQuality;
-  const day = ctx.createLinearGradient(0, sy, 0, fy);
-  if (isNight) {
-    day.addColorStop(0, lerpColor("#0c2b3a", "#1a2a18", murk));
-    day.addColorStop(0.5, lerpColor("#082230", "#152218", murk));
-    day.addColorStop(1, lerpColor("#04141d", "#0c1810", murk));
-  } else {
-    day.addColorStop(0, lerpColor("#bdeaf5", "#c5d4a8", murk * 0.7));
-    day.addColorStop(0.35, lerpColor("#5fc2d9", "#6a9a70", murk));
-    day.addColorStop(0.75, lerpColor("#1f7f9e", "#3d5c40", murk));
-    day.addColorStop(1, lerpColor("#0e4f66", "#243820", murk));
-  }
-  ctx.fillStyle = day;
-  ctx.fillRect(0, sy, W, fy - sy);
-  ctx.fillStyle = isNight ? "#020409" : "#dff3f7";
-  ctx.fillRect(0, 0, W, sy);
+/* ================= 背景: 水体 ================= */
+function drawWater(){
+  const sy=surfaceY(), fy=floorY(), murk=1-quality, d=dayness;
+  // 白天 / 夜晚两套配色, 按 dayness 混合; 浑浊度让水体发绿
+  const top =lerpColor(lerpColor("#0c2b3a","#bdeaf5",d), lerpColor("#1a2a18","#c5d4a8",d), murk*0.7);
+  const mid =lerpColor(lerpColor("#082230","#5fc2d9",d), lerpColor("#152218","#6a9a70",d), murk);
+  const low =lerpColor(lerpColor("#04141d","#1f7f9e",d), lerpColor("#0c1810","#3d5c40",d), murk);
+  const deep=lerpColor(lerpColor("#020d14","#0e4f66",d), lerpColor("#060f08","#243820",d), murk);
+  const g=ctx.createLinearGradient(0,sy,0,fy);
+  g.addColorStop(0,top);g.addColorStop(0.38,mid);g.addColorStop(0.75,low);g.addColorStop(1,deep);
+  ctx.fillStyle=g;ctx.fillRect(0,sy,W,fy-sy);
+  // 水面以上的"空气"
+  ctx.fillStyle=lerpColor("#020409","#dff3f7",d);ctx.fillRect(0,0,W,sy);
 
-  ctx.save();
-  ctx.beginPath(); ctx.rect(0, sy, W, fy - sy); ctx.clip();
-  ctx.fillStyle = isNight ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.09)";
-  for (let i = 0; i < 5; i++) {
-    const bx = (i / 5) * W + Math.sin(t * 0.15 + i) * 18;
-    ctx.beginPath();
-    ctx.moveTo(bx - 18, sy); ctx.lineTo(bx + 18, sy);
-    ctx.lineTo(bx + 55, fy); ctx.lineTo(bx + 8, fy);
-    ctx.closePath(); ctx.fill();
+  // 丁达尔光柱
+  ctx.save();ctx.beginPath();ctx.rect(0,sy,W,fy-sy);ctx.clip();
+  ctx.fillStyle=`rgba(255,255,255,${0.03+0.06*d})`;
+  for(let i=0;i<5;i++){
+    const bx=(i/5)*W+Math.sin(t*0.12+i*1.7)*22;
+    ctx.beginPath();ctx.moveTo(bx-16,sy);ctx.lineTo(bx+16,sy);
+    ctx.lineTo(bx+52,fy);ctx.lineTo(bx+6,fy);ctx.closePath();ctx.fill();
   }
   ctx.restore();
 
-  ctx.strokeStyle = isNight ? "rgba(180,220,255,.25)" : "rgba(255,255,255,.55)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  for (let x = 0; x <= W; x += 8) {
-    const y = sy + Math.sin(x * 0.08 + t * 2) * 1.6;
-    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  // 水面波纹线
+  ctx.strokeStyle=`rgba(255,255,255,${0.25+0.3*d})`;ctx.lineWidth=2;ctx.beginPath();
+  for(let x=0;x<=W;x+=8){
+    const y=sy+Math.sin(x*0.08+t*2)*1.6+Math.sin(x*0.023-t*1.1)*1.1;
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   }
   ctx.stroke();
 
-  if (isNight) {
-    ctx.fillStyle = "rgba(220,235,255,.9)";
-    ctx.beginPath(); ctx.arc(W * 0.82, sy * 0.4, 9, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,.8)";
-    for (let i = 0; i < 12; i++) {
-      const sx = (i * 53.7) % W;
-      ctx.globalAlpha = 0.3 + ((Math.sin(i * 12.9 + 1) + 1) / 2) * 0.5;
-      ctx.fillRect(sx, (i * 13) % (sy * 0.9), 1.5, 1.5);
+  // 太阳 / 月亮+星星
+  if(d>0.03){
+    ctx.globalAlpha=d;
+    ctx.fillStyle="rgba(255,214,120,.9)";
+    ctx.beginPath();ctx.arc(W*0.85,sy*0.42,10,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="rgba(255,220,140,.25)";
+    ctx.beginPath();ctx.arc(W*0.85,sy*0.42,17,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+  if(d<0.97){
+    const na=1-d;ctx.globalAlpha=na;
+    ctx.fillStyle="rgba(220,235,255,.9)";
+    ctx.beginPath();ctx.arc(W*0.82,sy*0.4,9,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.8)";
+    for(let i=0;i<12;i++){
+      ctx.globalAlpha=na*(0.25+((Math.sin(i*12.9+1)+1)/2)*0.5);
+      ctx.fillRect((i*53.7)%W,(i*13)%(sy*0.9),1.5,1.5);
     }
-    ctx.globalAlpha = 1;
-  } else {
-    ctx.fillStyle = "rgba(255,214,120,.9)";
-    ctx.beginPath(); ctx.arc(W * 0.85, sy * 0.4, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha=1;
   }
 }
 
-/* —— static floor —— */
-const gravelSeed = Array.from({ length: 220 }, () => ({ x: Math.random(), c: Math.random() }));
-function rebuildStaticLayer() {
-  const c = staticCtx;
-  c.clearRect(0, 0, W, H);
-  const fy = floorY();
-  c.fillStyle = isNight ? "#1b140d" : "#7a5a36";
-  c.fillRect(0, fy, W, H - fy);
-  for (const g of gravelSeed) {
-    const gx = g.x * W, gy = fy + 4 + g.c * (H - fy - 8);
-    const shade = 0.5 + Math.sin(g.c * 40) * 0.2;
-    c.fillStyle = isNight
-      ? `rgba(${60 + shade * 40},${45 + shade * 30},${30 + shade * 20},.9)`
-      : `rgba(${150 + shade * 80},${110 + shade * 60},${60 + shade * 40},.9)`;
-    c.beginPath();
-    c.ellipse(gx, gy, 2 + shade * 2, 1.4 + shade, 0, 0, Math.PI * 2);
-    c.fill();
+/* ================= 静态底层: 沙砾/石头/晒台 ================= */
+const gravelSeed=Array.from({length:220},()=>({x:Math.random(),c:Math.random()}));
+function rebuildStatic(){
+  const c=staticCtx;c.clearRect(0,0,W,H);
+  const fy=floorY(),d=dayness;
+  c.fillStyle=lerpColor("#17110b","#7a5a36",d);c.fillRect(0,fy,W,H-fy);
+  // 沙砾
+  for(const g of gravelSeed){
+    const gx=g.x*W,gy=fy+4+g.c*(H-fy-8),sh=0.5+Math.sin(g.c*40)*0.2;
+    c.fillStyle=d>0.5
+      ?`rgba(${(150+sh*80)|0},${(110+sh*60)|0},${(60+sh*40)|0},.9)`
+      :`rgba(${(46+sh*34)|0},${(34+sh*26)|0},${(22+sh*18)|0},.9)`;
+    c.beginPath();c.ellipse(gx,gy,2+sh*2,1.4+sh,0,0,Math.PI*2);c.fill();
   }
-  function rock(x, y, s) {
-    c.fillStyle = isNight ? "#2c2c30" : "#6b6b6f";
-    c.beginPath(); c.ellipse(x, y, s, s * 0.6, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = isNight ? "#3a3a40" : "#87878c";
-    c.beginPath(); c.ellipse(x - s * 0.2, y - s * 0.3, s * 0.5, s * 0.3, 0, 0, Math.PI * 2); c.fill();
+  // 石头
+  const rock=(x,y,s)=>{
+    c.fillStyle=lerpColor("#2c2c30","#6b6b6f",d);
+    c.beginPath();c.ellipse(x,y,s,s*0.6,0,0,Math.PI*2);c.fill();
+    c.fillStyle=lerpColor("#3a3a40","#87878c",d);
+    c.beginPath();c.ellipse(x-s*0.2,y-s*0.3,s*0.5,s*0.3,0,0,Math.PI*2);c.fill();
+  };
+  rock(W*0.16,fy+6,17);rock(W*0.21,fy+11,10);rock(W*0.5,fy+5,11);
+  rock(W*0.62,fy+9,7);rock(W*0.94,fy+7,13);rock(W*0.90,fy+12,8);
+  // 乌龟晒台(浮木): 固定在水面右上
+  const px=W*0.84,py=surfaceY()-2;
+  c.fillStyle="#4a3018";c.beginPath();c.ellipse(px,py,34,8,0,0,Math.PI*2);c.fill();
+  c.fillStyle="#5c3d20";c.beginPath();c.ellipse(px-6,py-3,22,5,0,0,Math.PI*2);c.fill();
+  staticDirty=false;lastDayness=dayness;
+}
+/* 水底波光(动态, 盖在静态层上) */
+function drawCaustics(){
+  const fy=floorY(),d=dayness;if(d<0.05)return;
+  ctx.save();ctx.globalCompositeOperation="lighter";
+  for(let i=0;i<9;i++){
+    const cx=((i*97.3+t*(14+i*3))% (W+120))-60;
+    const cy=fy+8+((i*37.7)%Math.max(8,(H-fy-14)));
+    const r=26+Math.sin(t*0.9+i*2.1)*10;
+    const a=0.028*d*(0.6+0.4*Math.sin(t*1.3+i));
+    if(a<=0.004)continue;
+    const g=ctx.createRadialGradient(cx,cy,2,cx,cy,r);
+    g.addColorStop(0,`rgba(180,230,255,${a})`);g.addColorStop(1,"rgba(180,230,255,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
   }
-  rock(W * 0.16, fy + 6, 17);
-  rock(W * 0.21, fy + 11, 10);
-  rock(W * 0.5, fy + 5, 11);
-  rock(W * 0.62, fy + 9, 7);
-  rock(W * 0.94, fy + 7, 13);
-  rock(W * 0.90, fy + 12, 8);
-  const px = W * 0.84, py = surfaceY() - 2;
-  c.fillStyle = "#4a3018";
-  c.beginPath(); c.ellipse(px, py, 34, 8, 0, 0, Math.PI * 2); c.fill();
-  c.fillStyle = "#5c3d20";
-  c.beginPath(); c.ellipse(px - 6, py - 3, 22, 5, 0, 0, Math.PI * 2); c.fill();
-  staticDirty = false;
+  ctx.restore();
 }
 
-/* —— plants —— */
-const plants = [
-  { xFrac: 0.06, baseH: 0.22, h: 0.22, sway: 0.6, health: 1, type: "grass", hue: 122, density: 7 },
-  { xFrac: 0.30, baseH: 0.26, h: 0.26, sway: 1.9, health: 1, type: "broadleaf", hue: 92, density: 5 },
-  { xFrac: 0.55, baseH: 0.18, h: 0.18, sway: 3.1, health: 1, type: "redPlant", hue: 8, density: 6 },
-  { xFrac: 0.76, baseH: 0.32, h: 0.32, sway: 0, health: 1, type: "grass", hue: 145, density: 9 },
-  { xFrac: 0.96, baseH: 0.22, h: 0.22, sway: 1.4, health: 1, type: "moss", hue: 62, density: 4 }
+/* ================= 水草 ================= */
+const plants=[
+  {xFrac:0.06,baseH:0.22,h:0.22,sway:0.6,health:1,type:"grass",   hue:122,density:7},
+  {xFrac:0.30,baseH:0.26,h:0.26,sway:1.9,health:1,type:"broad",   hue:92, density:5},
+  {xFrac:0.55,baseH:0.18,h:0.18,sway:3.1,health:1,type:"red",     hue:8,  density:6},
+  {xFrac:0.76,baseH:0.32,h:0.32,sway:0,  health:1,type:"grass",   hue:145,density:9},
+  {xFrac:0.96,baseH:0.22,h:0.22,sway:1.4,health:1,type:"moss",    hue:62, density:4},
 ];
-function updatePlants(dt) {
-  const light = isNight ? 0.025 : 0.09;
-  const grow = light * (0.35 + nutrients * 1.1) * (0.5 + oxygen * 0.8) * (filterOn ? 1.15 : 1) * dt;
-  for (const p of plants) {
-    const maxH = p.baseH * (1.1 + nutrients * 0.55 + oxygen * 0.2);
-    if (p.health > 0.2) {
-      p.h = Math.min(maxH, p.h + grow * p.health);
-      waterQuality = Math.min(1, waterQuality + p.h * 0.005 * dt);
-      nutrients = Math.max(0, nutrients - p.h * 0.01 * dt);
-      oxygen = Math.min(1, oxygen + p.h * p.health * (isNight ? 0.008 : 0.045) * dt);
-    }
-    if (waterQuality < 0.35 || oxygen < 0.25)
-      p.health = Math.max(0.12, p.health - 0.025 * dt);
-    else
-      p.health = Math.min(1, p.health + 0.012 * dt);
+function plantMass(){let m=0;for(const p of plants)m+=p.h*p.health;return m;}
+function plantCoverAt(x,y){
+  let best=0;const fy=floorY();
+  for(const p of plants){
+    const px=W*p.xFrac,py=fy-H*p.h*0.45,rad=22+p.h*H*0.22;
+    const dd=Math.hypot(x-px,y-py);
+    if(dd<rad)best=Math.max(best,(1-dd/rad)*p.health*Math.min(1,p.h/p.baseH));
+  }
+  return best;
+}
+function updatePlants(dt){
+  const mass=plantMass();
+  for(const p of plants){
+    // 生长: 需要光照+废物(肥料)+氧气
+    const light=dayness>0.5?0.09:0.02;
+    const grow=light*(0.3+waste*1.2)*(0.5+oxygen*0.8)*dt*p.health;
+    const maxH=p.baseH*(1.1+waste*0.6);
+    if(p.health>0.2)p.h=Math.min(maxH,p.h+grow);
+    // 净化: 吸收废物; 白天产氧, 夜晚微耗氧
+    waste=Math.max(0,waste-p.h*p.health*0.006*dt);
+    oxygen=clamp(oxygen+p.h*p.health*(dayness>0.5?0.030:-0.006)*dt,0,1);
+    // 水质太差水草也会烂
+    if(quality<0.3)p.health=Math.max(0.12,p.health-0.03*dt);
+    else p.health=Math.min(1,p.health+0.012*dt);
   }
 }
-function drawPlants() {
-  const fy = floorY();
-  for (const p of plants) {
-    const x = W * p.xFrac, h = H * p.h;
-    const baseHue = isNight ? p.hue - 12 : p.hue;
-    const sat = p.health > .5 ? 62 : 35;
-    const light = isNight ? 22 : (p.health > .5 ? 42 : 30);
-    const hue = `hsl(${baseHue},${sat}%,${light}%)`;
-    ctx.strokeStyle = hue; ctx.fillStyle = hue; ctx.lineCap = "round";
-    if (p.type === "broadleaf") {
-      for(let b=0;b<p.density;b++){ const off=(b-(p.density-1)/2)*5; const sway=Math.sin(t*.9+b+p.sway)*10;
-        ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(x+off,fy+4); ctx.quadraticCurveTo(x+off+sway,fy-h*.55,x+off+sway*.7,fy-h); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(x+off+sway*.7,fy-h*(.62+.04*(b%3)),7,15,-.35+Math.sin(b)*.15,0,Math.PI*2); ctx.fill(); }
-    } else if (p.type === "redPlant") {
-      for(let b=0;b<p.density;b++){ const off=(b-(p.density-1)/2)*4; const sway=Math.sin(t*1.3+b+p.sway)*12;
-        ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x+off,fy+4); ctx.bezierCurveTo(x+off+sway,fy-h*.35,x+off-sway,fy-h*.7,x+off+sway*.6,fy-h); ctx.stroke();
-        ctx.fillStyle=`hsla(${baseHue+Math.sin(b)*8},${sat}%,${light+8}%,.8)`; ctx.beginPath(); ctx.ellipse(x+off+sway*.6,fy-h*.78,4,9,.4,0,Math.PI*2); ctx.fill(); ctx.fillStyle=hue; }
-    } else if (p.type === "moss") {
-      ctx.lineWidth=3; for(let b=0;b<9;b++){ const off=(b-4)*3.5; const hh=h*(.35+((b*7)%5)/10); ctx.beginPath(); ctx.moveTo(x+off,fy+3); ctx.quadraticCurveTo(x+off-5,fy-hh*.5,x+off+Math.sin(t+b)*4,fy-hh); ctx.stroke(); }
-    } else {
-      for(let b=0;b<p.density;b++){ const off=(b-(p.density-1)/2)*4.5; ctx.lineWidth=2.8; ctx.beginPath(); ctx.moveTo(x+off,fy+4); ctx.quadraticCurveTo(x+off+Math.sin(t*1.1+b+p.sway)*10,fy-h*.55,x+off+Math.sin(t*1.1+b+p.sway+1)*16,fy-h); ctx.stroke(); }
-    }
-  }
-}
-function trimPlants() {
-  for (const p of plants) {
-    if (p.h > p.baseH * 0.7) {
-      p.h *= 0.65;
-      nutrients = Math.min(1, nutrients + 0.05);
-    }
-  }
-  playBlip(400);
-}
-
-/* —— bubbles —— */
-let bubbles = [];
-function spawnBubble(x, y) {
-  if (bubbles.length >= MAX_BUBBLES) return;
-  bubbles.push({ x: x + rand(-4, 4), y, r: rand(1.5, 3.5), vy: rand(28, 46), drift: rand(-6, 6) });
-}
-function updateBubbles(dt) {
-  if (Math.random() < 0.28) spawnBubble(W * 0.5, floorY() - 2);
-  if (filterOn && Math.random() < 0.45) spawnBubble(W * 0.12, floorY() - 4);
-  const sy = surfaceY();
-  let w = 0;
-  for (let i = 0; i < bubbles.length; i++) {
-    const b = bubbles[i];
-    b.y -= b.vy * dt;
-    b.x += Math.sin(b.y * 0.05) * b.drift * dt;
-    if (b.y > sy) bubbles[w++] = b;
-  }
-  bubbles.length = w;
-}
-function drawBubbles() {
-  ctx.fillStyle = isNight ? "rgba(200,230,255,.35)" : "rgba(255,255,255,.55)";
-  for (const b of bubbles) {
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
-  }
-}
-
-/* —— food —— */
-let foods = [];
-function dropFood(x, y) {
-  foods.push({ x, y: Math.max(y, surfaceY() + 6), vy: 10, eaten: false, r: 3.5, age: 0, corpse: false });
-}
-function updateFood(dt) {
-  const fy = floorY();
-  let w = 0;
-  for (let i = 0; i < foods.length; i++) {
-    const f = foods[i];
-    if (f.eaten) continue;
-    if (f.y < fy - 6) f.y += f.vy * dt;
-    else {
-      f.age += dt;
-      if (f.age > 12) {
-        waterQuality = Math.max(0, waterQuality - 0.04);
-        nutrients = Math.min(1, nutrients + 0.06);
-        continue;
+function drawPlants(){
+  const fy=floorY(),d=dayness;
+  for(const p of plants){
+    const x=W*p.xFrac,h=H*p.h;
+    const hue=p.hue-(d<0.5?12:0);
+    const sat=p.health>0.5?62:35, li=(d<0.5?22:(p.health>0.5?42:30));
+    const col=`hsl(${hue},${sat}%,${li}%)`;
+    ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineCap="round";
+    if(p.type==="broad"){
+      for(let b=0;b<p.density;b++){
+        const off=(b-(p.density-1)/2)*5,sw=Math.sin(t*0.9+b+p.sway)*10;
+        ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(x+off,fy+4);
+        ctx.quadraticCurveTo(x+off+sw,fy-h*0.55,x+off+sw*0.7,fy-h);ctx.stroke();
+        ctx.beginPath();ctx.ellipse(x+off+sw*0.7,fy-h*(0.62+0.04*(b%3)),7,15,-0.35+Math.sin(b)*0.15,0,Math.PI*2);ctx.fill();
+      }
+    }else if(p.type==="red"){
+      for(let b=0;b<p.density;b++){
+        const off=(b-(p.density-1)/2)*4,sw=Math.sin(t*1.3+b+p.sway)*12;
+        ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+off,fy+4);
+        ctx.bezierCurveTo(x+off+sw,fy-h*0.35,x+off-sw,fy-h*0.7,x+off+sw*0.6,fy-h);ctx.stroke();
+        ctx.fillStyle=`hsla(${hue+Math.sin(b)*8},${sat}%,${li+8}%,.8)`;
+        ctx.beginPath();ctx.ellipse(x+off+sw*0.6,fy-h*0.78,4,9,0.4,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=col;
+      }
+    }else if(p.type==="moss"){
+      ctx.lineWidth=3;
+      for(let b=0;b<9;b++){
+        const off=(b-4)*3.5,hh=h*(0.35+((b*7)%5)/10);
+        ctx.beginPath();ctx.moveTo(x+off,fy+3);
+        ctx.quadraticCurveTo(x+off-5,fy-hh*0.5,x+off+Math.sin(t+b)*4,fy-hh);ctx.stroke();
+      }
+    }else{
+      for(let b=0;b<p.density;b++){
+        const off=(b-(p.density-1)/2)*4.5;
+        ctx.lineWidth=2.8;ctx.beginPath();ctx.moveTo(x+off,fy+4);
+        ctx.quadraticCurveTo(x+off+Math.sin(t*1.1+b+p.sway)*10,fy-h*0.55,
+          x+off+Math.sin(t*1.1+b+p.sway+1)*16,fy-h);ctx.stroke();
       }
     }
-    foods[w++] = f;
   }
-  foods.length = w;
 }
-function drawFood() {
-  for (const f of foods) {
-    ctx.fillStyle = f.corpse ? "#8a6a4a" : (f.age > 6 ? "#8a6a3a" : "#c98a3b");
-    ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+function trimPlants(){
+  for(const p of plants)if(p.h>p.baseH*0.7){p.h*=0.65;waste=Math.min(1,waste+0.04);}
+  toast("🌿 水草已修剪");blip(420,0.12,0.09);
+}
+
+/* ================= 气泡: 过滤器出水口 + 水草光合作用 ================= */
+let bubbles=[];
+function spawnBubble(x,y,r){
+  if(bubbles.length>=MAX_BUBBLES)return;
+  bubbles.push({x:x+rand(-4,4),y,r:r||rand(1.5,3.5),vy:rand(28,48),drift:rand(-6,6)});
+}
+function updateBubbles(dt){
+  if(filterOn&&Math.random()<0.5)spawnBubble(W*0.10,floorY()-6);   // 过滤出水口
+  if(dayness>0.5)for(const p of plants){                            // 白天水草冒小泡
+    if(p.health>0.6&&Math.random()<0.02*p.health)
+      spawnBubble(W*p.xFrac+rand(-8,8),floorY()-H*p.h*rand(0.3,0.7),rand(1,2));
+  }
+  if(Math.random()<0.06)spawnBubble(rand(W*0.2,W*0.8),floorY()-2);  // 零星底泡
+  const sy=surfaceY();let w=0;
+  for(let i=0;i<bubbles.length;i++){
+    const b=bubbles[i];
+    b.y-=b.vy*dt;b.x+=Math.sin(b.y*0.05)*b.drift*dt;
+    if(b.y>sy)bubbles[w++]=b;
+  }
+  bubbles.length=w;
+}
+function drawBubbles(){
+  const d=dayness;
+  ctx.strokeStyle=`rgba(220,240,255,${0.25+0.3*d})`;ctx.lineWidth=1;
+  for(const b of bubbles){ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.stroke();}
+}
+
+/* ================= 食物: 下沉+摇摆, 烂掉变废物 ================= */
+let foods=[];
+function dropFood(x,y,n){
+  n=n||1;
+  for(let i=0;i<n;i++)
+    foods.push({x:x+rand(-10,10),y:Math.max(y,surfaceY()+6)+i*3,
+      vy:rand(9,14),eaten:false,r:3.5,age:0,corpse:false,sway:rand(0,6)});
+}
+function updateFood(dt){
+  const fy=floorY();let w=0;
+  for(let i=0;i<foods.length;i++){
+    const f=foods[i];
+    if(f.eaten)continue;
+    if(f.y<fy-6){f.y+=f.vy*dt;f.x+=Math.sin(t*3+f.sway)*8*dt;}
+    else{
+      f.age+=dt;
+      if(f.age>12){waste=Math.min(1,waste+(f.corpse?0.05:0.02));continue;} // 烂掉→废物
+    }
+    foods[w++]=f;
+  }
+  foods.length=w;
+}
+function drawFood(){
+  for(const f of foods){
+    ctx.fillStyle=f.corpse?"#8a6a4a":(f.age>6?"#8a6a3a":"#c98a3b");
+    ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill();
   }
 }
 
-/* —— eggs / genetics —— */
-const PALETTES = [
-  { light: "#ffb84d", dark: "#ff7a2e" },
-  { light: "#ffcf6b", dark: "#ff9a3d", patch: "rgba(255,255,255,.55)" },
-  { light: "#ff9d6b", dark: "#e85a2e" },
-  { light: "#ff6b9d", dark: "#e02060", patch: "rgba(255,255,255,.4)" },
-  { light: "#7ec8ff", dark: "#2a6fc0" },
-  { light: "#ffe566", dark: "#e0a020", patch: "rgba(40,30,20,.35)" },
-  { light: "#ff8c42", dark: "#c04010", patch: "rgba(255,220,100,.45)" },
-  { light: "#e0b0ff", dark: "#8a40c0" }
+/* ================= 卵 & 颜色遗传 ================= */
+const PALETTES=[
+  {light:"#ffb84d",dark:"#ff7a2e"},
+  {light:"#ffcf6b",dark:"#ff9a3d",patch:"rgba(255,255,255,.55)"},
+  {light:"#ff9d6b",dark:"#e85a2e"},
+  {light:"#ff6b9d",dark:"#e02060",patch:"rgba(255,255,255,.4)"},
+  {light:"#7ec8ff",dark:"#2a6fc0"},
+  {light:"#ffe566",dark:"#e0a020",patch:"rgba(40,30,20,.35)"},
+  {light:"#ff8c42",dark:"#c04010",patch:"rgba(255,220,100,.45)"},
+  {light:"#e0b0ff",dark:"#8a40c0"},
 ];
-let eggs = [];
-
-function mixHex(h1, h2, bias) {
-  const p = parseInt(h1.slice(1), 16), q = parseInt(h2.slice(1), 16);
-  const u = bias != null ? bias : rand(0.35, 0.65);
-  const r = ((p >> 16) & 255) * (1 - u) + ((q >> 16) & 255) * u;
-  const g = ((p >> 8) & 255) * (1 - u) + ((q >> 8) & 255) * u;
-  const bl = (p & 255) * (1 - u) + (q & 255) * u;
-  return `#${((r | 0) << 16 | (g | 0) << 8 | (bl | 0)).toString(16).padStart(6, "0")}`;
+function mixHex(h1,h2,bias){
+  const p=parseInt(h1.slice(1),16),q=parseInt(h2.slice(1),16);
+  const u=bias!=null?bias:rand(0.35,0.65);
+  const r=((p>>16)&255)*(1-u)+((q>>16)&255)*u,
+        g=((p>>8)&255)*(1-u)+((q>>8)&255)*u,
+        b=(p&255)*(1-u)+(q&255)*u;
+  return "#"+(((r|0)<<16)|((g|0)<<8)|(b|0)).toString(16).padStart(6,"0");
 }
-function mixHue(a, b) {
-  const hue = { light: mixHex(a.light, b.light), dark: mixHex(a.dark, b.dark) };
-  if (a.patch || b.patch || Math.random() < 0.35) {
-    const patches = ["rgba(255,255,255,.55)", "rgba(40,30,20,.4)", "rgba(220,60,40,.35)", "rgba(255,200,80,.4)"];
-    hue.patch = patches[Math.floor(Math.random() * patches.length)];
+function mixHue(a,b){
+  const hue={light:mixHex(a.light,b.light),dark:mixHex(a.dark,b.dark)};
+  if(a.patch||b.patch||Math.random()<0.35){
+    const ps=["rgba(255,255,255,.55)","rgba(40,30,20,.4)","rgba(220,60,40,.35)","rgba(255,200,80,.4)"];
+    hue.patch=ps[(Math.random()*ps.length)|0];
   }
-  if (Math.random() < 0.12) {
-    const m = PALETTES[3 + Math.floor(Math.random() * 5)];
-    hue.light = mixHex(hue.light, m.light, 0.55);
-    hue.dark = mixHex(hue.dark, m.dark, 0.55);
+  if(Math.random()<0.12){
+    const m=PALETTES[3+((Math.random()*5)|0)];
+    hue.light=mixHex(hue.light,m.light,0.55);hue.dark=mixHex(hue.dark,m.dark,0.55);
   }
   return hue;
 }
-function layEgg(x, y, hueA, hueB) {
-  if (eggs.length >= MAX_EGGS) return;
-  eggs.push({
-    x: x + rand(-8, 8),
-    y: clamp(y + rand(-4, 4), surfaceY() + 20, floorY() - 20),
-    age: 0, hatchIn: rand(9, 14), alive: true,
-    hueA: hueA || PALETTES[0], hueB: hueB || PALETTES[1]
-  });
+let eggs=[];
+function layEgg(x,y,hueA,hueB){
+  if(eggs.length>=MAX_EGGS)return;
+  eggs.push({x:x+rand(-8,8),y:clamp(y+rand(-4,4),surfaceY()+20,floorY()-20),
+    age:0,hatchIn:rand(10,15),alive:true,hueA:hueA||PALETTES[0],hueB:hueB||PALETTES[1]});
 }
-function updateEggs(dt) {
-  let w = 0;
-  for (let i = 0; i < eggs.length; i++) {
-    const e = eggs[i];
-    if (!e.alive) continue;
-    e.age += dt;
-    if (waterQuality < 0.25 && Math.random() < 0.15 * dt) {
-      nutrients = Math.min(1, nutrients + 0.02);
-      continue;
-    }
-    if (e.age >= e.hatchIn) {
-      if (fishes.length < MAX_FISH && waterQuality > 0.3) {
-        const baby = new Goldfish(mixHue(e.hueA, e.hueB), "baby");
-        baby.x = e.x; baby.y = e.y;
-        fishes.push(baby);
+function updateEggs(dt){
+  let w=0;
+  for(let i=0;i<eggs.length;i++){
+    const e=eggs[i];
+    if(!e.alive)continue;
+    e.age+=dt;
+    if(quality<0.25&&Math.random()<0.2*dt)continue;      // 水质太差, 卵坏死
+    if(e.age>=e.hatchIn){
+      if(fishes.filter(f=>f.alive).length<MAX_FISH&&quality>0.3){
+        const baby=new Goldfish(mixHue(e.hueA,e.hueB),"baby");
+        baby.x=e.x;baby.y=e.y;fishes.push(baby);
+        toast("🐣 小鱼孵化了!");blip(700,0.12,0.08);
       }
       continue;
     }
-    eggs[w++] = e;
+    eggs[w++]=e;
   }
-  eggs.length = w;
+  eggs.length=w;
 }
-function drawEggs() {
-  for (const e of eggs) {
-    const pulse = 0.7 + Math.sin(t * 4 + e.x) * 0.15;
-    ctx.fillStyle = `rgba(255,230,180,${pulse})`;
-    ctx.beginPath(); ctx.ellipse(e.x, e.y, 3.5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "rgba(200,160,80,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+function drawEggs(){
+  for(const e of eggs){
+    const pulse=0.65+Math.sin(t*4+e.x)*0.2;
+    ctx.fillStyle=`rgba(255,230,180,${pulse})`;
+    ctx.beginPath();ctx.ellipse(e.x,e.y,3.5,4.5,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="rgba(200,160,80,.5)";ctx.lineWidth=1;ctx.stroke();
   }
-}
-
-/* —— goldfish —— */
-/* —— fin-ray rendering helper (fancy goldfish fins made of many thin rays) —— */
-function _bezierPt(p0, p1, p2, tt) {
-  const mt = 1 - tt;
-  return { x: mt * mt * p0.x + 2 * mt * tt * p1.x + tt * tt * p2.x, y: mt * mt * p0.y + 2 * mt * tt * p1.y + tt * tt * p2.y };
-}
-function drawFinRays(p0, p1, p2, count, color, alpha, lw) {
-  ctx.strokeStyle = color;
-  ctx.globalAlpha = alpha;
-  ctx.lineWidth = lw;
-  ctx.lineCap = "round";
-  for (let i = 1; i <= count; i++) {
-    const tt = 0.22 + (i / count) * 0.72;
-    const pt = _bezierPt(p0, p1, p2, tt);
-    const ctrl = _bezierPt(p0, p1, p2, tt * 0.55);
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.quadraticCurveTo(ctrl.x, ctrl.y, pt.x, pt.y);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
 }
 
-class Goldfish {
-  constructor(hue, stage = "adult") {
-    this.x = rand(W * 0.2, W * 0.8);
-    this.y = rand(H * 0.25, H * 0.7);
-    this.dir = rand(0, Math.PI * 2);
-    this.personality = { speedBias: rand(.72,1.38), turnRate: rand(.75,1.35), depth: rand(.18,.82), route: ["cruise","zigzag","bottom","surface"][Math.floor(Math.random()*4)] };
-    this.speed = (stage === "baby" ? rand(18, 26) : rand(24, 34)) * this.personality.speedBias;
-    this.wiggle = rand(0, 10);
-    this.hue = hue;
-    this.size = stage === "baby" ? rand(0.35, 0.5) : rand(0.85, 1.15);
-    this.retarget = 0;
-    this.tx = this.x; this.ty = this.y;
-    this.fleeing = false; this.hiding = false; this.hideTime = 0;
-    this.stage = stage;
-    this.age = stage === "baby" ? 0 : rand(20, 60);
-    this.hunger = stage === "baby" ? 0.4 : rand(0.3, 0.6);
-    this.breedCD = rand(8, 18);
-    this.mealsEaten = 0; this.armor = 0;
-    this.bites = 0; this.biteFlash = 0;
-    this.alive = true;
+/* ================= 金鱼 ================= */
+let fishes=[];
+let turtle=null;
+const adultsAlive=()=>fishes.filter(f=>f.alive&&f.stage==="adult").length;
+
+function drawFinRays(x0,y0,tx,ty,count,color,alpha,lw){
+  // 沿尾鳍画放射细线, 更像真实鳍条
+  ctx.strokeStyle=color;ctx.globalAlpha=alpha;ctx.lineWidth=lw;ctx.lineCap="round";
+  for(let i=1;i<=count;i++){
+    const u=0.25+(i/count)*0.7;
+    const px=x0+(tx-x0)*u, py=y0+(ty-y0)*u;
+    const cx=x0+(tx-x0)*u*0.5, cy=y0+(ty-y0)*u*0.5;
+    ctx.beginPath();ctx.moveTo(x0,y0);ctx.quadraticCurveTo(cx,cy,px,py);ctx.stroke();
   }
-  pickTarget() {
-    const margin = 40;
-    if (this.stage === "adult" && this.armor >= 0.4) {
-      const fry = fishes.find(f => f.alive && f.stage === "baby");
-      if (fry) {
-        this.tx = clamp(fry.x + rand(-25, 25), margin, W - margin);
-        this.ty = clamp(fry.y + rand(-20, 20), surfaceY() + 20, floorY() - 14);
-        this.retarget = rand(1.5, 3);
-        return;
+  ctx.globalAlpha=1;
+}
+
+class Goldfish{
+  constructor(hue,stage="adult"){
+    this.x=rand(W*0.2,W*0.8);this.y=rand(H*0.25,H*0.7);
+    this.dir=rand(0,Math.PI*2);this.turnBias=rand(0.75,1.35);
+    this.speed=(stage==="baby"?rand(18,26):rand(24,34));
+    this.size=stage==="baby"?rand(0.35,0.5):rand(0.85,1.15);
+    this.stage=stage;this.age=stage==="baby"?0:rand(20,60);
+    this.hunger=stage==="baby"?0.4:rand(0.35,0.6);
+    this.hue=hue;this.wiggle=rand(0,10);this.swimAmp=1;
+    this.tx=this.x;this.ty=this.y;this.retarget=0;this.mode="cruise";
+    this.breedCD=rand(10,20);this.courtT=0;this.starveT=0;
+    this.mealsEaten=0;this.armor=0;this.bites=0;this.biteFlash=0;
+    this.alive=true;
+    this.route=["cruise","zigzag","bottom","surface"][(Math.random()*4)|0];
+    this.depth=rand(0.2,0.8);
+  }
+  pickTarget(){
+    const m=60;
+    this.tx=rand(m,W-m);
+    if(this.route==="bottom")this.ty=rand(floorY()-70,floorY()-16);
+    else if(this.route==="surface")this.ty=rand(surfaceY()+26,surfaceY()+H*0.22);
+    else if(this.route==="zigzag")this.ty=clamp(H*this.depth+Math.sin(t*2+this.wiggle)*H*0.15,surfaceY()+26,floorY()-16);
+    else this.ty=rand(surfaceY()+26,floorY()-16);
+    this.retarget=rand(2.5,5);
+  }
+  fleeTarget(){
+    let bp=plants[0],bs=-1;
+    for(const p of plants){const sc=p.h*p.health;if(sc>bs){bs=sc;bp=p;}}
+    this.tx=clamp(W*bp.xFrac+rand(-14,14),34,W-34);
+    this.ty=clamp(floorY()-H*bp.h*0.5+rand(-8,8),surfaceY()+20,floorY()-14);
+  }
+  stressLevel(){
+    let s=0;
+    if(this.hunger<0.35)s+=(0.35-this.hunger)*1.4;
+    if(this.hunger<0.15)s+=0.25;
+    if(quality<0.45)s+=(0.45-quality)*0.9;
+    if(oxygen<0.4)s+=(0.4-oxygen)*1.1;
+    if(this.mode==="flee")s+=0.35;
+    return clamp(s,0,1);
+  }
+  tryBreed(dt){
+    if(this.stage!=="adult"||this.breedCD>0)return;
+    if(this.hunger<0.35||this.hunger>0.95||quality<0.5||oxygen<0.35)return;
+    if(adultsAlive()<2||eggs.length>=MAX_EGGS)return;
+    let partner=null,bd=1e9;
+    for(const o of fishes){
+      if(o===this||!o.alive||o.stage!=="adult"||o.breedCD>0)continue;
+      const d=Math.hypot(o.x-this.x,o.y-this.y);
+      if(d<bd){bd=d;partner=o;}
+    }
+    if(!partner||bd>90){this.courtT=0;return;}
+    this.mode="court";this.tx=partner.x;this.ty=partner.y;
+    if(bd<42){
+      this.courtT+=dt;
+      if(this.courtT>2.2){
+        const p=plants[(Math.random()*plants.length)|0];
+        const lx=W*p.xFrac+rand(-15,15),ly=floorY()-H*p.h*0.35;
+        const n=turtle&&turtle.peaceful?2+(Math.random()<0.5?1:0):1+(Math.random()<0.4?1:0);
+        for(let i=0;i<n;i++)layEgg(lx,ly,this.hue,partner.hue);
+        this.breedCD=rand(25,40);partner.breedCD=rand(25,40);this.courtT=0;
+        toast("💕 金鱼产卵了!");blip(520,0.15,0.09);
       }
-    }
-    if (this.hunger > 0.55 && this.stage === "baby") {
-      const p = plants[Math.floor(Math.random() * plants.length)];
-      this.tx = clamp(W * p.xFrac + rand(-20, 20), margin, W - margin);
-      this.ty = clamp(floorY() - H * p.h * 0.4 + rand(-15, 15), surfaceY() + 20, floorY() - 14);
-    } else {
-      this.tx = rand(margin, W - margin);
-      const route = this.personality.route;
-      if (route === "bottom") this.ty = rand(floorY() - 70, floorY() - 14);
-      else if (route === "surface") this.ty = rand(surfaceY() + 24, surfaceY() + H * .22);
-      else if (route === "zigzag") this.ty = clamp(H * this.personality.depth + Math.sin(t*2.4+this.wiggle)*H*.18, surfaceY()+24, floorY()-14);
-      else this.ty = rand(surfaceY() + 24, floorY() - 14);
-    }
-    this.retarget = rand(2.5, 5);
+    }else this.courtT=0;
   }
-  fleeFromTurtle() {
-    if (!turtle || !this.alive || turtle.peaceful) return false;
-    const d = Math.hypot(turtle.x - this.x, turtle.y - this.y);
-    const scareR = turtle.chasingFood || turtle.eatTimer > 0
-      ? (this.stage === "baby" ? 110 : 90)
-      : (this.stage === "baby" ? 75 : 55);
-    if (d > scareR) return false;
-    let bestP = plants[0], bestScore = -1;
-    for (const p of plants) {
-      if (p.h * p.health > bestScore) { bestScore = p.h * p.health; bestP = p; }
-    }
-    this.tx = clamp(W * bestP.xFrac + rand(-12, 12), 30, W - 30);
-    this.ty = clamp(floorY() - H * bestP.h * 0.5 + rand(-8, 8), surfaceY() + 18, floorY() - 12);
-    this.fleeing = true;
-    this.retarget = 0.9;
-    return true;
+  die(cause){
+    if(!this.alive)return;
+    this.alive=false;
+    waste=Math.min(1,waste+(this.stage==="adult"?0.04:0.05));
+    foods.push({x:this.x,y:this.y,vy:8,eaten:false,r:4.5,age:0,corpse:true,sway:rand(0,6)});
+    if(cause==="starve")toast("🐟 有鱼饿死了! 快投食");
+    else if(cause==="env")toast("☠️ 水质恶化致死! 快换水");
+    else if(cause!=="eaten")toast("🐟 一条鱼死了");
+    blip(200,0.2,0.08,"triangle");
   }
-  tryBreed() {
-    if (this.stage !== "adult" || this.breedCD > 0) return;
-    if (this.hunger < 0.35 || this.hunger > 0.85) return;
-    if (waterQuality < 0.45 || oxygen < 0.4) return;
-    if (fishes.filter(f => f.alive && f.stage === "adult").length < 2) return;
-    if (eggs.length >= MAX_EGGS) return;
-    let partner = null;
-    for (const o of fishes) {
-      if (o === this || !o.alive || o.stage !== "adult") continue;
-      if (o.breedCD > 0 || o.hunger < 0.35) continue;
-      if (Math.hypot(o.x - this.x, o.y - this.y) < 50) { partner = o; break; }
+  update(dt){
+    if(!this.alive)return;
+    const adult=this.stage==="adult";
+    this.age+=dt;this.breedCD-=dt;
+    if(this.biteFlash>0)this.biteFlash=Math.max(0,this.biteFlash-dt);
+    // 代谢: 消耗氧气, 产生废物
+    this.hunger=Math.max(0,this.hunger-dt*(adult?0.011:0.03));
+    waste=Math.min(1,waste+dt*(adult?0.0016:0.0012));
+    oxygen=Math.max(0,oxygen-dt*(adult?0.0042:0.0038));
+    if(!adult&&this.age>(oxygen>0.55?16:20)){
+      this.stage="adult";this.size=rand(0.85,1.1);this.speed=rand(24,34);
     }
-    if (!partner) return;
-    const p = plants[Math.floor(Math.random() * plants.length)];
-    const lx = W * p.xFrac + rand(-15, 15);
-    const ly = floorY() - H * p.h * 0.35;
-    const peace = turtle && turtle.peaceful;
-    const n = peace ? (2 + (Math.random() < 0.5 ? 1 : 0)) : (1 + (Math.random() < 0.4 ? 1 : 0));
-    for (let i = 0; i < n; i++) layEgg(lx, ly, this.hue, partner.hue);
-    this.breedCD = peace ? rand(6, 12) : rand(20, 35);
-    partner.breedCD = peace ? rand(6, 12) : rand(20, 35);
-    playBlip(520);
-  }
-  stressLevel() {
-    let s = 0;
-    if (this.hunger < 0.35) s += (0.35 - this.hunger) * 1.4;
-    if (this.hunger < 0.15) s += 0.25;
-    if (waterQuality < 0.45) s += (0.45 - waterQuality) * 0.9;
-    if (oxygen < 0.4) s += (0.4 - oxygen) * 1.1;
-    if (this.hideTime > 6) s += Math.min(0.35, (this.hideTime - 6) * 0.03);
-    if (this.fleeing) s += 0.35;
-    return clamp(s, 0, 1);
-  }
-  update(dt) {
-    if (!this.alive) return;
-    this.age += dt;
-    this.breedCD -= dt;
-    if (this.biteFlash > 0) this.biteFlash = Math.max(0, this.biteFlash - dt);
-    const cover = plantCoverAt(this.x, this.y);
-    this.hiding = cover > 0.35;
-    this.hideTime = this.hiding ? this.hideTime + dt : Math.max(0, this.hideTime - dt * 0.5);
+    if(this.hunger<=0.01){this.starveT+=dt;if(this.starveT>4){this.die("starve");return;}}
+    else this.starveT=0;
+    if(quality<(adult?0.07:0.13)&&Math.random()<0.05*dt){this.die("env");return;}
+    if(oxygen<(adult?0.05:0.09)&&Math.random()<0.06*dt){this.die("env");return;}
 
-    const isAdult = this.stage === "adult";
-    let drain = isAdult ? 0.010 : 0.032;
-    if (this.hideTime > 8) drain *= isAdult ? 1.15 : 1.4;
-    if (this.hideTime > 16) drain *= isAdult ? 1.1 : 1.4;
-    if (oxygen < 0.3) drain *= isAdult ? 1.1 : 1.3;
-    this.hunger = Math.max(0, this.hunger - dt * drain);
-    oxygen = Math.max(0, oxygen - (isAdult ? 0.0045 : 0.004) * dt);
-
-    if (!isAdult && this.age > (oxygen > 0.55 ? 16 : 20)) {
-      this.stage = "adult";
-      this.size = rand(0.85, 1.1);
-      this.speed = rand(24, 34);
-    }
-    if (this.armor > 0 && this.hunger < 0.35) this.armor = Math.max(0, this.armor - 0.015 * dt);
-
-    if (this.hunger <= 0 && Math.random() < (isAdult ? 0.025 : 0.1) * dt) { this.die(); return; }
-    if (waterQuality < (isAdult ? 0.06 : 0.12) && Math.random() < (isAdult ? 0.03 : 0.12) * dt) { this.die(); return; }
-    if (oxygen < (isAdult ? 0.04 : 0.08) && Math.random() < (isAdult ? 0.04 : 0.15) * dt) { this.die(); return; }
-    if (waterQuality < 0.28) this.hunger = Math.max(0, this.hunger - (isAdult ? 0.004 : 0.01) * dt);
-
-    this.retarget -= dt;
-    this.fleeing = false;
-    if (this.fleeFromTurtle()) {
-      /* fear blocks foraging */
-    } else if (this.hunger < 0.85) {
-      let target = null, best = Infinity;
-      for (const f of foods) {
-        if (f.eaten) continue;
-        if (turtle && Math.hypot(f.x - turtle.x, f.y - turtle.y) < 70) continue;
-        const d = Math.hypot(f.x - this.x, f.y - this.y);
-        if (d < best) { best = d; target = f; }
-      }
-      if (target) {
-        this.tx = target.x; this.ty = target.y;
-        if (best < (isAdult ? 8 : 6)) {
-          target.eaten = true;
-          this.hunger = Math.min(1, this.hunger + 0.35);
-          this.hideTime = 0;
-          if (isAdult) {
-            this.mealsEaten++;
-            this.armor = Math.min(1, this.armor + 0.18);
+    // —— 行为决策 ——
+    const T=turtle;
+    let danger=Infinity;
+    if(T&&!T.peaceful)danger=Math.hypot(T.x-this.x,T.y-this.y);
+    const fleeR=(this.stage==="baby"?120:95)+(T&&T.state==="hunt"?25:0);
+    this.retarget-=dt;
+    if(danger<fleeR){
+      this.mode="flee";this.fleeTarget();this.retarget=0.8;
+    }else{
+      if(this.mode==="flee")this.mode="cruise";
+      if(this.hunger<0.8){
+        let best=null,bd=Infinity;
+        for(const f of foods){
+          if(f.eaten)continue;
+          if(T&&T.state==="hunt"&&Math.hypot(f.x-T.x,f.y-T.y)<60)continue;
+          const d=Math.hypot(f.x-this.x,f.y-this.y);
+          if(d<bd){bd=d;best=f;}
+        }
+        if(best){
+          this.mode="forage";this.tx=best.x;this.ty=best.y;
+          if(bd<(adult?9:7)){
+            best.eaten=true;this.hunger=Math.min(1,this.hunger+0.38);
+            if(adult){this.mealsEaten++;this.armor=Math.min(1,this.armor+0.15);}
           }
-        }
-      } else if (this.retarget <= 0) this.pickTarget();
-    } else if (this.retarget <= 0) this.pickTarget();
-
-    this.tryBreed();
-
-    const dx = this.tx - this.x, dy = this.ty - this.y;
-    const dist = Math.hypot(dx, dy) || 1;
-    let diff = Math.atan2(dy, dx) - this.dir;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    this.dir += diff * Math.min(1, dt * (this.fleeing ? 4.8 : 2.2) * this.personality.turnRate);
-    let speed = this.speed;
-    if (this.fleeing) speed *= 1.9;
-    else if (this.hunger < 0.25) speed *= 0.65;
-    else if (this.hunger < 0.85 && foods.some(f => !f.eaten)) speed *= 1.15;
-    if (waterQuality < 0.3) speed *= 0.75;
-    if (oxygen < 0.25) speed *= 0.7;
-    if (this.hiding && !this.fleeing) speed *= 0.75;
-    const step = Math.min(speed * dt, dist);
-    this.x = clamp(this.x + Math.cos(this.dir) * step, 20, W - 20);
-    this.y = clamp(this.y + Math.sin(this.dir) * step, surfaceY() + 16, floorY() - 10);
-    const animRate = this.fleeing ? 14 : (this.hunger < 0.85 && foods.some(f => !f.eaten) ? 10 : 6.5);
-    this.wiggle += dt * (animRate + speed * 0.12);
-    if (this.hunger > 0.5) {
-      waterQuality = Math.max(0, waterQuality - 0.0015 * dt);
-      nutrients = Math.min(1, nutrients + 0.002 * dt);
+        }else if(this.retarget<=0){this.mode="cruise";this.pickTarget();}
+      }else if(this.retarget<=0){this.mode="cruise";this.pickTarget();}
     }
+    this.tryBreed(dt);
+
+    // —— 移动 ——
+    const dx=this.tx-this.x,dy=this.ty-this.y,dist=Math.hypot(dx,dy)||1;
+    const want=Math.atan2(dy,dx);
+    let diff=want-this.dir;
+    while(diff>Math.PI)diff-=Math.PI*2;
+    while(diff<-Math.PI)diff+=Math.PI*2;
+    this.dir+=diff*Math.min(1,dt*(this.mode==="flee"?5.0:2.4)*this.turnBias);
+    let sp=this.speed*(this.mode==="flee"?1.9:this.mode==="forage"?1.25:this.mode==="court"?0.9:0.8);
+    if(quality<0.3)sp*=0.75;
+    if(oxygen<0.25)sp*=0.7;
+    if(this.hunger<0.2)sp*=0.7;
+    const step=Math.min(sp*dt,dist);
+    this.x=clamp(this.x+Math.cos(this.dir)*step,22,W-22);
+    this.y=clamp(this.y+Math.sin(this.dir)*step,surfaceY()+16,floorY()-10);
+    const tAmp=this.mode==="flee"?1.35:this.mode==="forage"?1.1:1;
+    this.swimAmp+=(tAmp-this.swimAmp)*Math.min(1,dt*4);
+    this.wiggle+=dt*((this.mode==="flee"?13:this.mode==="forage"?10:6.5)+sp*0.1)*this.swimAmp;
   }
-  die() {
-    this.alive = false;
-    const impact = this.stage === "adult" ? 0.035 : 0.05;
-    waterQuality = Math.max(0, waterQuality - impact);
-    nutrients = Math.min(1, nutrients + impact * 1.2);
-    oxygen = Math.max(0, oxygen - impact * 0.6);
-    foods.push({ x: this.x, y: this.y, vy: 8, eaten: false, r: 4.5, age: 0, corpse: true });
-  }
-  draw() {
-    if (!this.alive) return;
-    const s = 15 * this.size;
-    const stress = this.stressLevel();
-    const sick = stress > 0.35 || waterQuality < 0.3 || this.hunger < 0.15;
-    const gasp = oxygen < 0.35 || stress > 0.55;
-    const starving = this.hunger < 0.2;
-    const w = this.wiggle;
-    const bodyWave = Math.sin(w) * (0.07 + stress * 0.06);
-    const tailAmp = this.fleeing ? 0.85 : 0.55;
-    const tailWag = Math.sin(w * 1.8) * tailAmp;
-    const tailWag2 = Math.sin(w * 1.8 + 0.6) * tailAmp * 0.7;
-    const dorsalWag = Math.sin(w * 1.3) * 0.12;
-    const pectoral = Math.sin(w * 2.4) * 0.45;
-    const bob = Math.sin(w * 0.7) * (this.fleeing ? 1.2 : 0.6);
+  draw(){
+    if(!this.alive)return;
+    const s=16*this.size,w=this.wiggle;
+    const fleeing=this.mode==="flee";
+    const stress=this.stressLevel();
+    const sick=stress>0.35||quality<0.3||this.hunger<0.15;
+    const gasp=oxygen<0.35, starving=this.hunger<0.2;
+    const colL=sick?"#c0a060":this.hue.light, colD=sick?"#a08040":this.hue.dark;
+
+    // 水底投影: 离底越近越深
+    const hFrac=clamp((floorY()-this.y)/(floorY()-surfaceY()),0,1);
+    ctx.fillStyle=`rgba(0,0,0,${0.22*(1-hFrac*0.75)})`;
+    ctx.beginPath();ctx.ellipse(this.x,floorY()+7,s*1.5,s*0.42,0,0,Math.PI*2);ctx.fill();
+
+    // —— 身体中线行波: 头→尾摆动幅度递增, 像真鱼一样 --
+    const N=12,spine=[],ampB=(fleeing?0.34:0.20)*this.swimAmp;
+    for(let i=0;i<=N;i++){
+      const u=i/N,fx=(0.95-1.8*u)*s;
+      spine.push({x:fx,y:Math.sin(w-i*0.62)*ampB*s*(0.15+0.85*u)});
+    }
+    const widthAt=u=>s*0.60*Math.sin(Math.PI*Math.pow(u,0.72));
 
     ctx.save();
-    ctx.translate(this.x, this.y + bob);
-    const flip = Math.cos(this.dir) < 0;
-    ctx.scale(flip ? -1 : 1, 1);
-    ctx.rotate(bodyWave + Math.sin(this.dir) * 0.04);
+    ctx.translate(this.x,this.y+Math.sin(w*0.7)*(fleeing?1.2:0.6));
+    ctx.scale(Math.cos(this.dir)<0?-1:1,1);
+    ctx.rotate(Math.sin(this.dir)*0.05);
 
-    const colL = sick ? "#c0a060" : this.hue.light;
-    const colD = sick ? "#a08040" : this.hue.dark;
-    const bodyH = s * (0.70 + Math.sin(w * 2) * 0.03);
-    // 背深腹浅的纵向渐变（背部深橙红，腹部金黄），更接近真实/参考图中的金鱼配色
-    const bodyGrad = ctx.createLinearGradient(0, -bodyH * 1.1, 0, bodyH * 1.05);
-    bodyGrad.addColorStop(0, colD);
-    bodyGrad.addColorStop(0.42, colD);
-    bodyGrad.addColorStop(0.72, colL);
-    bodyGrad.addColorStop(1, colL);
-
-    const tailBase = { x: -s * 0.85, y: 0 };
-    const tailP1u = { x: -s * 1.55, y: -s * (0.9 + tailWag * 0.2) };
-    const tailP2u = { x: -s * (2.7 + Math.abs(tailWag) * 0.25), y: -s * 0.2 + tailWag * s * 1.1 };
-    const tailP1l = { x: -s * 1.55, y: s * (0.9 - tailWag2 * 0.2) };
-    const tailP2l = { x: -s * (2.7 + Math.abs(tailWag2) * 0.25), y: s * 0.2 + tailWag2 * s * 1.1 };
-    const tailGrad = ctx.createLinearGradient(tailBase.x, 0, tailP2u.x, 0);
-    tailGrad.addColorStop(0, colL);
-    tailGrad.addColorStop(1, colD);
-    ctx.fillStyle = tailGrad;
-    ctx.globalAlpha = 0.92;
+    // 身体
     ctx.beginPath();
-    ctx.moveTo(tailBase.x, tailBase.y);
-    ctx.quadraticCurveTo(tailP1u.x, tailP1u.y, tailP2u.x, tailP2u.y);
-    ctx.quadraticCurveTo(-s * 1.55, -s * 0.06, -s * 0.9, 0);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(tailBase.x, tailBase.y);
-    ctx.quadraticCurveTo(tailP1l.x, tailP1l.y, tailP2l.x, tailP2l.y);
-    ctx.quadraticCurveTo(-s * 1.55, s * 0.06, -s * 0.9, 0);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    drawFinRays(tailBase, tailP1u, tailP2u, 9, colD, 0.42, Math.max(0.6, s * 0.028));
-    drawFinRays(tailBase, tailP1l, tailP2l, 9, colD, 0.42, Math.max(0.6, s * 0.028));
+    for(let i=0;i<=N;i++){const u=i/N,wd=widthAt(u);
+      const px=spine[i].x,py=spine[i].y-wd;i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+    for(let i=N;i>=0;i--){const u=i/N,wd=widthAt(u);ctx.lineTo(spine[i].x,spine[i].y+wd);}
+    ctx.closePath();
+    const bg=ctx.createLinearGradient(0,-s*0.7,0,s*0.7);
+    bg.addColorStop(0,colD);bg.addColorStop(0.45,colD);
+    bg.addColorStop(0.75,colL);bg.addColorStop(1,colL);
+    ctx.fillStyle=bg;ctx.fill();
 
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath(); ctx.ellipse(0, 0, s * 0.95, bodyH, 0, 0, Math.PI * 2); ctx.fill();
-    if (stress > 0.25) {
-      ctx.fillStyle = `rgba(180,90,40,${stress * 0.22})`;
-      ctx.beginPath(); ctx.ellipse(0, 0, s * 0.95, bodyH, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.save();ctx.clip();
+    if(stress>0.25){ // 紧迫发红
+      ctx.fillStyle=`rgba(180,90,40,${stress*0.22})`;
+      ctx.fillRect(-s,-s,2*s,2*s);
     }
-    if (this.biteFlash > 0) {
-      ctx.fillStyle = `rgba(255,40,20,${Math.min(0.55, this.biteFlash * 1.1)})`;
-      ctx.beginPath(); ctx.ellipse(0, 0, s * 0.95, bodyH, 0, 0, Math.PI * 2); ctx.fill();
+    if(this.biteFlash>0){ // 被咬闪红
+      ctx.fillStyle=`rgba(255,40,20,${Math.min(0.55,this.biteFlash*1.1)})`;
+      ctx.fillRect(-s,-s,2*s,2*s);
     }
-    // 鳞片质感：几道淡淡的弧形纹理，让身体不那么光秃
-    ctx.save();
-    ctx.beginPath(); ctx.ellipse(0, 0, s * 0.95, bodyH, 0, 0, Math.PI * 2); ctx.clip();
-    ctx.strokeStyle = `rgba(255,255,255,0.18)`;
-    ctx.lineWidth = Math.max(0.5, s * 0.02);
-    for (let gx = -0.5; gx <= 0.6; gx += 0.28) {
-      ctx.beginPath();
-      ctx.moveTo(s * gx, -bodyH);
-      ctx.quadraticCurveTo(s * (gx + 0.08), 0, s * gx, bodyH);
-      ctx.stroke();
+    // 鳞片弧线
+    ctx.strokeStyle="rgba(255,255,255,.16)";ctx.lineWidth=Math.max(0.5,s*0.02);
+    for(let gx=-0.5;gx<=0.6;gx+=0.28){
+      ctx.beginPath();ctx.moveTo(s*gx,-s*0.6);
+      ctx.quadraticCurveTo(s*(gx+0.08),0,s*gx,s*0.6);ctx.stroke();
     }
-    ctx.strokeStyle = `rgba(120,50,20,0.12)`;
-    for (let gy = -0.6; gy <= 0.6; gy += 0.4) {
-      ctx.beginPath();
-      ctx.moveTo(-s * 0.9, bodyH * gy);
-      ctx.quadraticCurveTo(0, bodyH * gy * 1.08, s * 0.9, bodyH * gy);
-      ctx.stroke();
+    // 铠甲微光(吃饱的成年鱼, 防乌龟)
+    if(this.armor>0.15&&this.stage==="adult"){
+      ctx.strokeStyle=`rgba(255,230,150,${0.3+this.armor*0.5})`;
+      ctx.lineWidth=1.2+this.armor;
+      ctx.beginPath();ctx.ellipse(0,0,s*0.95,s*0.62,0,0,Math.PI*2);ctx.stroke();
+    }
+    // 色斑
+    if(this.hue.patch&&this.stage==="adult"){
+      ctx.fillStyle=this.hue.patch;
+      ctx.beginPath();ctx.ellipse(-s*0.2,-s*0.15,s*0.3,s*0.2,0.3,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(s*0.3,s*0.12,s*0.22,s*0.15,-0.4,0,Math.PI*2);ctx.fill();
     }
     ctx.restore();
-    if (this.armor > 0.15 && this.stage === "adult") {
-      const a = this.armor;
-      ctx.strokeStyle = `rgba(220,200,120,${0.35 + a * 0.5})`;
-      ctx.lineWidth = 1.2 + a;
-      ctx.beginPath(); ctx.ellipse(0, 0, s * 0.98, bodyH + s * 0.03, 0, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = `rgba(255,230,150,${0.12 + a * 0.25})`;
-      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
-        if (!i && !j) continue;
-        ctx.beginPath(); ctx.ellipse(i * s * 0.35, j * s * 0.28, s * 0.16, s * 0.12, 0.2, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-    if (this.hue.patch && this.stage === "adult") {
-      ctx.fillStyle = this.hue.patch;
-      ctx.beginPath(); ctx.ellipse(-s * 0.2, -s * 0.2, s * 0.3, s * 0.22, 0.3, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(s * 0.3, s * 0.15, s * 0.22, s * 0.16, -0.4, 0, Math.PI * 2); ctx.fill();
-    }
 
-    ctx.fillStyle = colL;
-    const dorsalP0 = { x: -s * 0.15, y: -bodyH * 0.85 };
-    const dorsalP1 = { x: s * 0.05, y: -bodyH * (1.9 + dorsalWag) };
-    const dorsalP2 = { x: s * 0.4, y: -bodyH * 0.75 };
-    ctx.beginPath();
-    ctx.moveTo(dorsalP0.x, dorsalP0.y);
-    ctx.quadraticCurveTo(dorsalP1.x, dorsalP1.y, dorsalP2.x, dorsalP2.y);
-    ctx.quadraticCurveTo(s * 0.1, -bodyH * 0.95, dorsalP0.x, dorsalP0.y);
-    ctx.fill();
-    drawFinRays(dorsalP0, dorsalP1, dorsalP2, 6, colD, 0.4, Math.max(0.5, s * 0.025));
-
-    ctx.beginPath();
-    ctx.moveTo(-s * 0.1, bodyH * 0.8);
-    ctx.quadraticCurveTo(s * 0.05, bodyH * (1.25 - dorsalWag * 0.5), s * 0.3, bodyH * 0.7);
-    ctx.quadraticCurveTo(s * 0.05, bodyH * 0.9, -s * 0.1, bodyH * 0.8);
-    ctx.fill();
-
-    for (const side of [-1, 1]) {
-      const ang = side * (0.85 + pectoral * 0.5);
-      ctx.save();
-      ctx.translate(s * 0.1, side * bodyH * 0.35);
-      ctx.rotate(ang);
-      ctx.fillStyle = colL;
-      ctx.globalAlpha = 0.85;
-      ctx.beginPath();
-      ctx.ellipse(s * 0.2, 0, s * 0.38, s * 0.14, 0, 0, Math.PI * 2);
+    // —— 尾鳍: 跟随脊柱末端方向 + 摆动 --
+    const tb=spine[N],pb=spine[N-1];
+    const segA=Math.atan2(tb.y-pb.y,tb.x-pb.x);
+    const wagA=segA+Math.sin(w*1.0)*0.4*(fleeing?1.3:1);
+    const tl=s*1.55;
+    const tipX=tb.x+Math.cos(wagA)*tl,tipY=tb.y+Math.sin(wagA)*tl;
+    const tg=ctx.createLinearGradient(tb.x,tb.y,tipX,tipY);
+    tg.addColorStop(0,colL);tg.addColorStop(1,colD);
+    ctx.fillStyle=tg;ctx.globalAlpha=0.94;
+    for(const lobe of [-1,1]){ // 上下两叶
+      const off=lobe*s*0.42;
+      ctx.beginPath();ctx.moveTo(tb.x,tb.y);
+      ctx.quadraticCurveTo(
+        tb.x+Math.cos(wagA-0.45*lobe)*tl*0.55,
+        tb.y+Math.sin(wagA-0.45*lobe)*tl*0.55+off*0.4,
+        tipX,tipY+off);
+      ctx.quadraticCurveTo(
+        tb.x+Math.cos(wagA)*tl*0.45,
+        tb.y+Math.sin(wagA)*tl*0.45+off*0.2,
+        tb.x,tb.y);
       ctx.fill();
-      ctx.strokeStyle = colD;
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = Math.max(0.5, s * 0.02);
-      for (let r = -1; r <= 1; r++) {
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(s * 0.5, r * s * 0.1);
-        ctx.stroke();
-      }
+    }
+    ctx.globalAlpha=1;
+    drawFinRays(tb.x,tb.y,tipX,tipY-s*0.4,7,colD,0.4,Math.max(0.6,s*0.028));
+    drawFinRays(tb.x,tb.y,tipX,tipY+s*0.4,7,colD,0.4,Math.max(0.6,s*0.028));
+
+    // 背鳍
+    const du=0.42,di=Math.round(du*N);
+    const dpx=spine[di].x,dpy=spine[di].y-widthAt(du);
+    ctx.fillStyle=colL;ctx.beginPath();
+    ctx.moveTo(dpx-s*0.28,dpy+s*0.06);
+    ctx.quadraticCurveTo(dpx+s*0.02,dpy-s*1.05+Math.sin(w*1.3)*s*0.1,dpx+s*0.34,dpy+s*0.02);
+    ctx.quadraticCurveTo(dpx+s*0.02,dpy-s*0.1,dpx-s*0.28,dpy+s*0.06);
+    ctx.fill();
+
+    // 胸鳍(扑动)
+    const flap=Math.sin(w*2.4)*0.5;
+    for(const side of [-1,1]){
+      ctx.save();
+      ctx.translate(s*0.12,side*s*0.3);ctx.rotate(side*(0.85+flap*0.5));
+      ctx.fillStyle=colL;ctx.globalAlpha=0.85;
+      ctx.beginPath();ctx.ellipse(s*0.2,0,s*0.36,s*0.13,0,0,Math.PI*2);ctx.fill();
       ctx.restore();
     }
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
 
-    for (const side of [-1, 1]) {
-      const ex = s * (this.stage === "baby" ? 0.5 : 0.58);
-      const ey = side * s * (this.stage === "baby" ? 0.28 : 0.34);
-      const er = this.stage === "baby" ? s * 0.18 : s * 0.30;
-      ctx.fillStyle = sick ? "#f0e8d0" : "#fff8ec";
-      ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill();
-      const pr = er * (this.fleeing ? 0.62 : (starving ? 0.35 : 0.52));
-      ctx.fillStyle = "#191410";
-      ctx.beginPath(); ctx.arc(ex + er * 0.25, ey, pr, 0, Math.PI * 2); ctx.fill();
-      if (!sick) {
-        ctx.fillStyle = "rgba(255,255,255,.8)";
-        ctx.beginPath(); ctx.arc(ex + er * 0.05, ey - er * 0.25, er * 0.16, 0, Math.PI * 2); ctx.fill();
-      }
+    // 眼睛
+    for(const side of [-1,1]){
+      const ex=s*0.58,ey=side*s*0.30,er=s*(this.stage==="baby"?0.17:0.27);
+      ctx.fillStyle=sick?"#f0e8d0":"#fff8ec";
+      ctx.beginPath();ctx.arc(ex,ey,er,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#191410";
+      ctx.beginPath();ctx.arc(ex+er*0.25,ey,er*(fleeing?0.62:starving?0.35:0.52),0,Math.PI*2);ctx.fill();
+      if(!sick){ctx.fillStyle="rgba(255,255,255,.8)";
+        ctx.beginPath();ctx.arc(ex+er*0.02,ey-er*0.28,er*0.16,0,Math.PI*2);ctx.fill();}
     }
-
-    if (this.fleeing || gasp) {
-      const mo = 1.2 + Math.sin(w * 4) * 0.8;
-      ctx.fillStyle = "rgba(40,20,20,.55)";
-      ctx.beginPath(); ctx.ellipse(s * 0.92, 0, mo, mo * 0.55, 0, 0, Math.PI * 2); ctx.fill();
-    }
-
-    if (gasp) {
-      for (let i = 0; i < 1 + (stress > 0.7 ? 1 : 0); i++) {
-        const bx = s * 0.95 + Math.sin(t * 5 + i * 2) * 3;
-        const by = -s * 0.15 - ((t * 28 + i * 12) % 22);
-        ctx.strokeStyle = `rgba(200,230,255,${0.45 + stress * 0.4})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(bx, by, 1.2 + i * 0.6, 0, Math.PI * 2); ctx.stroke();
+    // 嘴: 张合
+    const mo=(fleeing||gasp)?1.4+Math.sin(w*4)*0.9:0.8;
+    ctx.fillStyle="rgba(40,20,20,.55)";
+    ctx.beginPath();ctx.ellipse(s*0.93,0,mo+0.6,(mo+0.6)*0.5,0,0,Math.PI*2);ctx.fill();
+    // 缺氧时嘴边冒小泡
+    if(gasp){
+      ctx.strokeStyle=`rgba(200,230,255,${0.4+stress*0.4})`;ctx.lineWidth=1;
+      for(let i=0;i<2;i++){
+        const bx=s*0.95+Math.sin(t*5+i*2)*3,by=-s*0.15-((t*28+i*12)%22);
+        ctx.beginPath();ctx.arc(bx,by,1.2+i*0.6,0,Math.PI*2);ctx.stroke();
       }
     }
     ctx.restore();
 
-    if (stress > 0.4) {
-      const ix = this.x, iy = this.y - s * 1.35 - 4;
-      const pulse = 0.65 + Math.sin(t * 6 + this.x) * 0.35;
-      ctx.save();
-      ctx.globalAlpha = 0.55 + stress * 0.45;
-      ctx.font = `bold ${Math.max(9, s * 0.55)}px sans-serif`;
-      ctx.textAlign = "center";
-      if (starving) { ctx.fillStyle = `rgba(220,80,40,${pulse})`; ctx.fillText("饿", ix, iy); }
-      else if (oxygen < 0.3) { ctx.fillStyle = `rgba(80,160,220,${pulse})`; ctx.fillText("氧", ix, iy); }
-      else if (waterQuality < 0.3) { ctx.fillStyle = `rgba(180,140,40,${pulse})`; ctx.fillText("水", ix, iy); }
-      else if (this.fleeing || this.hideTime > 8) {
-        ctx.fillStyle = `rgba(255,200,60,${pulse})`;
-        ctx.font = `bold ${Math.max(11, s * 0.65)}px sans-serif`;
-        ctx.fillText("!", ix, iy);
-      } else {
-        ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fillRect(ix - 7, iy - 2, 14, 3);
-        ctx.fillStyle = stress > 0.7 ? "#e05030" : "#e0a020";
-        ctx.fillRect(ix - 7, iy - 2, 14 * stress, 3);
+    // —— 头顶状态标 --
+    if(stress>0.4){
+      const ix=this.x,iy=this.y-s*1.35-6;
+      const pulse=0.65+Math.sin(t*6+this.x)*0.35;
+      ctx.save();ctx.globalAlpha=0.6+stress*0.4;
+      ctx.font=`bold ${Math.max(10,s*0.55)}px sans-serif`;ctx.textAlign="center";
+      if(starving){ctx.fillStyle=`rgba(220,80,40,${pulse})`;ctx.fillText("饿",ix,iy);}
+      else if(oxygen<0.3){ctx.fillStyle=`rgba(80,160,220,${pulse})`;ctx.fillText("氧",ix,iy);}
+      else if(quality<0.3){ctx.fillStyle=`rgba(180,140,40,${pulse})`;ctx.fillText("水",ix,iy);}
+      else if(fleeing){ctx.fillStyle=`rgba(255,200,60,${pulse})`;ctx.fillText("!",ix,iy);}
+      else{
+        ctx.fillStyle="rgba(0,0,0,.4)";ctx.fillRect(ix-8,iy-3,16,3);
+        ctx.fillStyle=stress>0.7?"#e05030":"#e0a020";ctx.fillRect(ix-8,iy-3,16*stress,3);
       }
       ctx.restore();
     }
   }
 }
 
-/* —— turtle —— */
-function hexPath(cx, cy, rw, rh, rot) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const ang = (rot || 0) + i * Math.PI / 3;
-    const px = cx + Math.cos(ang) * rw;
-    const py = cy + Math.sin(ang) * rh;
-    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+/* ================= 乌龟: 饿了捕猎, 饱了晒太阳 ================= */
+class Turtle{
+  constructor(){
+    this.x=W*0.3;this.y=floorY()-20;this.dir=0;
+    this.speed=26;
+    // 姿态: 俯仰/压坡/划水相位/头部/滑行/眨眼
+    this.pitch=0;this.roll=0;this.py=this.y;this.pdir=0;
+    this.paddlePhase=0;this.paddleAmp=0.6;this.bobPhase=rand(0,6);
+    this.headYaw=0;this.headYawT=2;this.headYawTarget=0;this.headPitch=0;
+    this.glideT=0;this.glideCD=rand(4,8);
+    this.blinkT=3;this.blink=0;
+    this.state="swim";this.stateTimer=rand(4,8);
+    this.tx=this.x;this.ty=this.y;
+    this.hunger=0.35;this.eatTimer=0;this.belly=0;
+    this.baskTimer=rand(22,30);
+    this.frenzy=false;this.frenzyTimer=0;
+    this.peaceful=false;
   }
-  ctx.closePath();
-}
-function drawScute(cx, cy, rw, rh, rot, alt) {
-  hexPath(cx, cy, rw, rh, rot);
-  ctx.fillStyle = alt ? "rgba(215,225,120,0.28)" : "rgba(30,55,20,0.22)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(210,190,90,0.65)";
-  ctx.lineWidth = 1.1;
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(255,255,220,0.28)";
-  ctx.lineWidth = 0.7;
-  hexPath(cx, cy, rw * 0.62, rh * 0.62, rot);
-  ctx.stroke();
-  hexPath(cx, cy, rw * 0.32, rh * 0.32, rot);
-  ctx.stroke();
-}
-
-class Turtle {
-  constructor() {
-    this.x = W * 0.3; this.y = floorY() - 20;
-    this.dir = 0; this.speed = 24; this.legPhase = 0;
-    this.state = "swim"; this.stateTimer = rand(6, 12);
-    this.tx = this.x; this.ty = this.y;
-    this.chasingFood = false; this.eatTimer = 0;
-    this.belly = 0; this.digestTimer = 0; this.meals = 0;
-    this.baskNeed = rand(18, 28); this.peaceful = false;
-    this.frenzy = false; this.frenzyTimer = 0;
-    this.pickTarget();
-  }
-  pickTarget() {
-    this.tx = rand(34, W - 34);
-    this.ty = rand(floorY() - 50, floorY() - 10);
-  }
-  findPrey() {
-    let best = null, bestD = Infinity, kind = null;
-    for (const f of foods) {
-      if (f.eaten) continue;
-      const d = Math.hypot(f.x - this.x, f.y - this.y) + (f.corpse ? -8 : 0);
-      if (d < bestD) { bestD = d; best = f; kind = "food"; }
+  findPrey(){
+    let bt=null,bd=Infinity,kind=null;
+    for(const f of foods){
+      if(f.eaten)continue;
+      const d=Math.hypot(f.x-this.x,f.y-this.y)+(f.corpse?-10:0);
+      if(d<bd){bd=d;bt=f;kind="food";}
     }
-    for (const e of eggs) {
-      if (!e.alive) continue;
-      const cover = plantCoverAt(e.x, e.y);
-      if (cover > 0.55) continue;
-      const d = Math.hypot(e.x - this.x, e.y - this.y) + cover * 50;
-      if (d < bestD) { bestD = d; best = e; kind = "egg"; }
+    for(const e of eggs){
+      if(!e.alive)continue;
+      const cover=plantCoverAt(e.x,e.y);
+      if(!this.frenzy&&cover>0.55)continue;         // 藏好的卵吃不到
+      const d=Math.hypot(e.x-this.x,e.y-this.y)+cover*50;
+      if(d<bd){bd=d;bt=e;kind="egg";}
     }
-    for (const f of fishes) {
-      if (!f.alive) continue;
-      if (f.armor >= 0.4) continue; // 有盔甲的鱼吃不了
-      let shielded = false;
-      for (const a of fishes) {
-        if (a !== f && a.alive && a.armor >= 0.4 && Math.hypot(a.x - f.x, a.y - f.y) < 55) {
-          shielded = true; break; // 盔甲鱼在附近护体，挡住乌龟
-        }
+    for(const f of fishes){
+      if(!f.alive||f.armor>=0.4)continue;            // 铠甲鱼吃不动
+      let shielded=false;
+      for(const a of fishes){                        // 铠甲鱼保护身边小鱼
+        if(a!==f&&a.alive&&a.armor>=0.4&&Math.hypot(a.x-f.x,a.y-f.y)<55){shielded=true;break;}
       }
-      if (shielded) continue;
-      if (this.frenzy) {
-        // 疯狂吃鱼模式：无视遮蔽，大小鱼通吃（盔甲鱼及其护体范围除外）
-        const d = Math.hypot(f.x - this.x, f.y - this.y);
-        if (d < bestD) { bestD = d; best = f; kind = f.stage === "adult" ? "adult" : "baby"; }
+      if(shielded)continue;
+      if(this.frenzy){
+        const d=Math.hypot(f.x-this.x,f.y-this.y);
+        if(d<bd){bd=d;bt=f;kind=f.stage==="adult"?"adult":"baby";}
         continue;
       }
-      if (f.stage !== "baby") continue;
-      const cover = plantCoverAt(f.x, f.y);
-      if (cover > 0.5 || f.hiding) continue;
-      const d = Math.hypot(f.x - this.x, f.y - this.y) + cover * 60;
-      if (d < bestD) { bestD = d; best = f; kind = "baby"; }
+      if(f.stage!=="baby")continue;
+      const cover=plantCoverAt(f.x,f.y);
+      if(cover>0.5)continue;                        // 躲进水草就安全
+      const d=Math.hypot(f.x-this.x,f.y-this.y)+cover*60;
+      if(d<bd){bd=d;bt=f;kind="baby";}
     }
-    return best ? { target: best, dist: bestD, kind } : null;
+    return bt?{target:bt,dist:bd,kind}:null;
   }
-  eat(target, kind) {
-    if (kind === "food") target.eaten = true;
-    else if (kind === "egg") target.alive = false;
-    else if (kind === "baby") target.die();
-    else if (kind === "adult") {
-      target.bites = (target.bites || 0) + 1;
-      target.biteFlash = 0.4;
-      if (target.bites >= 3) target.die();
+  eat(target,kind){
+    if(kind==="food")target.eaten=true;
+    else if(kind==="egg")target.alive=false;
+    else if(kind==="baby"){target.die("eaten");toast("🦖 乌龟吃掉了一条小鱼!");}
+    else if(kind==="adult"){
+      target.bites=(target.bites||0)+1;target.biteFlash=0.4;
+      if(target.bites>=3){target.die("eaten");toast("🦖 大鱼被乌龟吃掉了!");}
+      else toast("🦖 乌龟在咬大鱼!");
     }
-    this.eatTimer = this.frenzy ? 0.3 : 0.55;
-    this.meals++;
-    this.belly = Math.min(1, this.belly + (kind === "baby" ? 0.4 : kind === "egg" ? 0.15 : kind === "adult" ? 0.5 : 0.28));
-    this.digestTimer = Math.max(this.digestTimer, 8 + this.meals * 3);
-    waterQuality = Math.max(0, waterQuality - (kind === "adult" ? 0.015 : 0.008));
-    nutrients = Math.min(1, nutrients + (kind === "adult" ? 0.03 : 0.015));
-    playBlip(kind === "adult" ? 160 : 220);
+    this.eatTimer=this.frenzy?0.3:0.55;
+    this.hunger=clamp(this.hunger-(kind==="baby"?0.5:kind==="egg"?0.2:kind==="adult"?0.3:0.32),0,1);
+    this.belly=Math.min(1,this.belly+(kind==="baby"?0.4:kind==="egg"?0.15:kind==="adult"?0.5:0.28));
+    waste=Math.min(1,waste+(kind==="adult"?0.02:0.01));
+    blip(kind==="adult"?160:220,0.12,0.09);
   }
-  update(dt) {
-    this.stateTimer -= dt;
-    if (this.eatTimer > 0) this.eatTimer -= dt;
-    if (this.frenzy) {
-      this.frenzyTimer -= dt;
-      if (this.frenzyTimer <= 0) this.frenzy = false;
-      if (this.state === "surfaced" || this.state === "toSurface") {
-        this.state = "swim"; this.stateTimer = rand(3, 6);
-      }
+  update(dt){
+    if(this.eatTimer>0)this.eatTimer-=dt;
+    if(this.frenzy){
+      this.frenzyTimer-=dt;
+      if(this.frenzyTimer<=0){this.frenzy=false;toast("🦖 乌龟冷静下来了");}
     }
-    if (this.digestTimer > 0) {
-      this.digestTimer -= dt;
-      if (this.digestTimer <= 0) {
-        this.belly = Math.max(0, this.belly - 0.2);
-        this.meals = Math.max(0, this.meals - 1);
-        if (this.belly > 0.05) this.digestTimer = 5;
-        else { this.belly = 0; this.meals = 0; }
-      }
-    }
-    const isFull = this.belly > 0.7 && !this.frenzy;
-    this.baskNeed -= dt;
-    this.peaceful = (isFull || this.state === "surfaced" || this.state === "toSurface") && !this.frenzy;
+    this.hunger=clamp(this.hunger+dt*0.01,0,1);      // 约100秒从饱到饿
+    this.peaceful=(this.state==="bask"||this.state==="surface")&&!this.frenzy;
+    if(this.frenzy&&this.state!=="hunt")this.state="hunt";
 
-    if (!this.frenzy && this.baskNeed <= 0 && this.state === "swim") {
-      this.state = "toSurface"; this.stateTimer = 25; this.chasingFood = false;
-    }
-    const found = (!this.peaceful && (this.baskNeed > 0 || this.frenzy)) ? this.findPrey() : null;
-    this.chasingFood = false;
-    if (found && this.state !== "surfaced" && this.eatTimer <= 0) {
-      if (this.state === "diving") { this.state = "swim"; this.stateTimer = rand(3, 6); }
-      this.chasingFood = true;
-      this.tx = found.target.x; this.ty = found.target.y;
-      if (found.dist < (found.kind === "baby" ? 22 : found.kind === "adult" ? 30 : 26)) {
-        this.eat(found.target, found.kind);
-        this.chasingFood = false;
+    if(this.state==="swim"){
+      if(!this.frenzy&&this.hunger>0.55)this.state="hunt";
+      else{
+        this.baskTimer-=dt;
+        if(this.baskTimer<=0)this.state="surface";
+        else if(Math.hypot(this.tx-this.x,this.ty-this.y)<14||this.stateTimer<=0){
+          this.tx=rand(34,W-34);this.ty=rand(floorY()-50,floorY()-10);
+          this.stateTimer=rand(4,9);
+        }
+      }
+    }else if(this.state==="hunt"){
+      const found=this.findPrey();
+      if(found){
+        this.tx=found.target.x;this.ty=found.target.y;
+        const rr=found.kind==="baby"?22:found.kind==="adult"?30:24;
+        if(found.dist<rr)this.eat(found.target,found.kind);
+      }else if(Math.hypot(this.tx-this.x,this.ty-this.y)<14){
+        this.tx=rand(34,W-34);this.ty=rand(floorY()-50,floorY()-10);
+      }
+      if(!this.frenzy){
+        if(this.hunger<0.2)this.state="swim";
+        this.baskTimer-=dt;
+        if(this.baskTimer<=0)this.state="surface";
+      }
+    }else if(this.state==="surface"){
+      this.tx=W*0.84;this.ty=surfaceY()-4;            // 爬上晒台
+      if(Math.hypot(this.tx-this.x,this.ty-this.y)<12){
+        this.state="bask";this.stateTimer=rand(7,12);
+      }
+    }else if(this.state==="bask"){
+      this.tx=this.x;this.ty=this.y;
+      this.hunger=Math.max(0,this.hunger-dt*0.03);    // 晒太阳消化
+      this.belly=Math.max(0,this.belly-dt*0.05);
+      this.stateTimer-=dt;
+      if(this.stateTimer<=0){
+        this.state="swim";this.baskTimer=rand(22,32);this.stateTimer=rand(4,9);
+        this.tx=rand(34,W-34);this.ty=rand(floorY()-50,floorY()-10);
       }
     }
-    if (!this.chasingFood && this.state === "swim") {
-      if (Math.hypot(this.tx - this.x, this.ty - this.y) < 12 || this.stateTimer <= 0) {
-        if (this.baskNeed <= 5 || isFull) { this.state = "toSurface"; this.stateTimer = 20; }
-        else { this.pickTarget(); this.stateTimer = rand(4, 9); }
-      }
-    } else if (this.state === "toSurface") {
-      this.tx = W * 0.84; this.ty = surfaceY() - 6;
-      if (Math.hypot(this.tx - this.x, this.ty - this.y) < 10) {
-        this.state = "surfaced";
-        this.stateTimer = isFull ? rand(8, 14) : rand(5, 9);
-      }
-    } else if (this.state === "surfaced") {
-      this.tx = this.x; this.ty = this.y;
-      if (this.belly > 0) this.digestTimer = Math.max(0, this.digestTimer - dt * 0.5);
-      if (this.stateTimer <= 0) {
-        this.state = "diving"; this.baskNeed = rand(20, 32);
-        this.pickTarget(); this.stateTimer = 8;
-      }
-    } else if (this.state === "diving") {
-      if (Math.hypot(this.tx - this.x, this.ty - this.y) < 12) {
-        this.state = "swim"; this.stateTimer = rand(4, 9);
-      }
+
+    // —— 姿态解算: 俯仰 / 转弯压坡 / 划水 / 探头环顾 / 眨眼 ——
+    const vy=(this.y-this.py)/Math.max(dt,1e-4);this.py=this.y;
+    let tr=this.dir-this.pdir;this.pdir=this.dir;
+    while(tr>Math.PI)tr-=Math.PI*2;while(tr<-Math.PI)tr+=Math.PI*2;
+    const kk=Math.min(1,dt*4);
+    this.pitch+=(clamp(vy*0.004,-0.5,0.5)-this.pitch)*kk;
+    this.roll+=(clamp(-tr/Math.max(dt,1e-4)*0.05,-0.35,0.35)-this.roll)*kk;
+    let pSpeed=0,pAmp=0.6;
+    if(this.state==="hunt"){pSpeed=12;pAmp=0.95;}          // 捕猎: 大力划水
+    else if(this.state==="swim"){
+      if(this.glideT>0){this.glideT-=dt;pSpeed=1.4;pAmp=0.12;} // 滑行: 收蹼
+      else{pSpeed=5.5;pAmp=0.6;this.glideCD-=dt;
+        if(this.glideCD<=0){this.glideT=rand(1.6,2.8);this.glideCD=rand(6,11);}}
+    }else if(this.state==="surface"){pSpeed=7;pAmp=0.7;}   // 上浮: 前蹼够水
+    this.paddlePhase+=dt*pSpeed;
+    this.paddleAmp+=(pAmp-this.paddleAmp)*Math.min(1,dt*5);
+    this.bobPhase+=dt*(1+pSpeed*0.35);
+    this.headYawT-=dt;
+    if(this.headYawT<=0){this.headYawT=rand(2.5,6);this.headYawTarget=rand(-0.55,0.55);}
+    this.headYaw+=(this.headYawTarget-this.headYaw)*Math.min(1,dt*3);
+    const hp=this.state==="bask"?-0.5:this.state==="surface"?-0.3:this.state==="hunt"?0.18:0;
+    this.headPitch+=(hp-this.headPitch)*Math.min(1,dt*3);
+    this.blinkT-=dt;if(this.blinkT<=0){this.blink=0.14;this.blinkT=rand(2,5);}
+    if(this.blink>0)this.blink-=dt;
+
+    if(this.state!=="bask"){
+      const dx=this.tx-this.x,dy=this.ty-this.y,dist=Math.hypot(dx,dy)||1;
+      const want=Math.atan2(dy,dx);
+      let diff=want-this.dir;
+      while(diff>Math.PI)diff-=Math.PI*2;
+      while(diff<-Math.PI)diff+=Math.PI*2;
+      const hunting=this.state==="hunt";
+      this.dir+=diff*Math.min(1,dt*(hunting?3.2:1.6));
+      let mul=1;
+      if(hunting)mul=this.frenzy?3.4:2.4;
+      else if(this.eatTimer>0)mul=0.35;
+      else if(this.hunger<0.25)mul=0.6;
+      if(this.glideT>0&&this.state==="swim")mul=1.35; // 滑行借惯性
+      const step=Math.min(this.speed*mul*dt,dist);
+      const minY=(this.state==="surface")?surfaceY()-8:surfaceY()+8;
+      this.x=clamp(this.x+Math.cos(this.dir)*step,26,W-26);
+      this.y=clamp(this.y+Math.sin(this.dir)*step,minY,floorY()-8);
     }
-    if (this.state !== "surfaced") {
-      const dx = this.tx - this.x, dy = this.ty - this.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      let diff = Math.atan2(dy, dx) - this.dir;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      this.dir += diff * Math.min(1, dt * (this.chasingFood ? 3.4 : isFull ? 1.1 : 1.6));
-      let mul = 1;
-      if (this.chasingFood) mul = this.frenzy ? 3.6 : 2.6;
-      else if (this.eatTimer > 0) mul = 0.35;
-      else if (isFull) mul = 0.55;
-      const step = Math.min(this.speed * mul * dt, dist);
-      this.x = clamp(this.x + Math.cos(this.dir) * step, 26, W - 26);
-      this.y = clamp(this.y + Math.sin(this.dir) * step, surfaceY() + 10, floorY() - 8);
-      this.legPhase += dt * (this.chasingFood ? 11 : isFull ? 3 : 5);
-    } else this.legPhase += dt;
   }
-  draw() {
-    const s = 24 * (1 + this.belly * 0.12);
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.scale(Math.cos(this.dir) < 0 ? -1 : 1, 1);
-    ctx.fillStyle = "#3a6b32";
-    for (let i = 0; i < 4; i++) {
-      const side = i < 2 ? -1 : 1, front = i % 2 === 0;
-      const phase = this.legPhase + (front ? 0 : Math.PI) + (side < 0 ? 0 : Math.PI);
-      const lx = (front ? s * 0.55 : -s * 0.5) + Math.sin(phase) * 3;
-      const ly = side * s * 0.52 + Math.cos(phase) * 3.5;
-      ctx.save();
-      ctx.translate(lx, ly);
-      ctx.rotate(side * 0.45);
-      ctx.fillStyle = "#3a6b32";
-      ctx.beginPath(); ctx.ellipse(0, 0, 10, 4.2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "rgba(215,225,130,0.6)";
-      ctx.lineWidth = 0.8;
-      for (let k = -1; k <= 1; k++) {
-        ctx.beginPath(); ctx.moveTo(-8, k * 1.7); ctx.lineTo(7.5, k * 1.7); ctx.stroke();
-      }
-      ctx.fillStyle = "#ddd9b6";
-      for (let c = -1; c <= 1; c++) {
-        ctx.beginPath();
-        ctx.moveTo(9, c * 1.5); ctx.lineTo(12.5, c * 2.3); ctx.lineTo(9.6, c * 1.7 + 0.5);
-        ctx.closePath(); ctx.fill();
-      }
+  // 蹼足: 短壮写实版
+  flipper(bx,by,sd,ang,lenScale,skin,stripe){
+    const len=10*lenScale,wid=4;
+    ctx.save();ctx.translate(bx,by);ctx.rotate(ang);
+    ctx.fillStyle=sd<0?"rgba(66,72,48,.94)":skin;
+    ctx.beginPath();
+    ctx.moveTo(0,-wid*0.55);
+    ctx.quadraticCurveTo(len*0.55,-wid*0.8,len*0.96,0);
+    ctx.quadraticCurveTo(len*0.55,wid*0.8,0,wid*0.55);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle=stripe;ctx.lineWidth=0.8; // 细黄纹
+    ctx.beginPath();ctx.moveTo(len*0.15,0);ctx.lineTo(len*0.8,0);ctx.stroke();
+    for(let c=-2;c<=2;c++){ // 小蹼趾 + 短爪
+      ctx.save();ctx.translate(len*0.82,0);ctx.rotate(c*0.20);
+      ctx.fillStyle=sd<0?"rgba(60,66,44,.95)":"#454e30";
+      ctx.beginPath();ctx.moveTo(0,-1.8);ctx.lineTo(5.5,0);ctx.lineTo(0,1.8);
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle="#c9c29a";
+      ctx.beginPath();ctx.moveTo(5,-0.8);ctx.lineTo(7.6,0);ctx.lineTo(5,0.8);
+      ctx.closePath();ctx.fill();
       ctx.restore();
     }
-    const g = ctx.createRadialGradient(-s * 0.15, -s * 0.25, 2, 0, 0, s * 1.05);
-    g.addColorStop(0, "#7aa347"); g.addColorStop(0.45, "#4f7536"); g.addColorStop(1, "#2a4420");
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.ellipse(0, 0, s, s * 0.68, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.save();
-    ctx.beginPath(); ctx.ellipse(0, 0, s, s * 0.68, 0, 0, Math.PI * 2); ctx.clip();
-    // 背甲盾片(scute)纹理：中线椎盾5块 + 两侧肋盾4x2块，每块带年轮质感
-    const vX = [-0.62, -0.34, -0.05, 0.24, 0.5];
-    vX.forEach((fx, i) => drawScute(s * fx, 0, s * 0.19, s * 0.17, 0, i % 2 === 0));
-    const cX = [-0.5, -0.2, 0.08, 0.35];
-    for (const side of [-1, 1]) {
-      cX.forEach((fx, i) => drawScute(s * fx, side * s * 0.33, s * 0.17, s * 0.16, side * 0.12, i % 2 === 1));
-    }
     ctx.restore();
-    ctx.strokeStyle = "rgba(200,180,90,0.5)"; ctx.lineWidth = 2.2;
-    ctx.beginPath(); ctx.ellipse(0, 0, s * 0.92, s * 0.60, 0, 0, Math.PI * 2); ctx.stroke();
-    // 边缘盾片刻纹
-    ctx.strokeStyle = "rgba(20,30,10,0.4)"; ctx.lineWidth = 1;
-    for (let a = 0; a < 16; a++) {
-      const ang = (a / 16) * Math.PI * 2;
-      const ex = Math.cos(ang) * s * 0.98, ey = Math.sin(ang) * s * 0.66;
-      const ex2 = Math.cos(ang) * s * 0.86, ey2 = Math.sin(ang) * s * 0.58;
-      ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex2, ey2); ctx.stroke();
-    }
-    ctx.fillStyle = "#4a7a38";
-    ctx.beginPath(); ctx.ellipse(s * 0.85, -1, 7, 5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#3f6e32";
-    ctx.beginPath(); ctx.ellipse(s * 1.12, -2, 9, 6.5, 0, 0, Math.PI * 2); ctx.fill();
-    // 颈部/头部条纹(红耳龟标志性黄绿细纹)
-    ctx.strokeStyle = "rgba(212,226,120,0.75)"; ctx.lineWidth = 1;
-    for (let k = -1; k <= 1; k++) {
-      ctx.beginPath();
-      ctx.moveTo(s * 0.76, k * 3.2);
-      ctx.quadraticCurveTo(s * 0.98, k * 3.6, s * 1.2, k * 2.1);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = "rgba(230,200,70,0.85)"; ctx.lineWidth = 1.3; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(s * 0.95, -6); ctx.lineTo(s * 1.28, -5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(s * 0.95, 2); ctx.lineTo(s * 1.25, 3); ctx.stroke();
-    ctx.fillStyle = "#d4452f";
-    ctx.beginPath(); ctx.ellipse(s * 1.05, -7.5, 4.2, 2.4, 0.35, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#1a1e12";
-    ctx.beginPath(); ctx.arc(s * 1.2, -3, 1.5, 0, Math.PI * 2); ctx.fill();
-    // 下颌/喉部浅黄色斑块，呼应参考图中红耳龟偏亮的喉部颜色
-    ctx.fillStyle = "rgba(220,225,150,0.55)";
-    ctx.beginPath(); ctx.ellipse(s * 1.08, 4.5, 6, 3.6, 0.15, 0, Math.PI * 2); ctx.fill();
-    const jaw = this.eatTimer > 0 ? 3.2 * Math.sin((0.55 - this.eatTimer) * 14) : 0;
-    ctx.fillStyle = "#2a4020";
+  }
+  draw(){
+    // 写实版巴西红耳龟: 壳长体扁, 头小, 色沉
+    const s=26*(1+this.belly*0.10);
+    const fx=Math.cos(this.dir)<0?-1:1;
+    const basking=this.state==="bask",surfing=this.state==="surface";
+    const gliding=this.glideT>0&&this.state==="swim";
+    const amp=this.paddleAmp;
+    const skin="#5a6240",skinD="#49523a",stripe="rgba(205,190,115,.50)";
+    ctx.save();
+    ctx.translate(this.x,this.y+Math.sin(this.bobPhase)*1.2);
+    ctx.scale(fx,1);
+    ctx.rotate(this.pitch+this.roll*0.3);
+
+    // —— 短尾 ——
+    ctx.fillStyle=skinD;
     ctx.beginPath();
-    ctx.moveTo(s * 1.26, -1.2); ctx.lineTo(s * 1.40, -0.2); ctx.lineTo(s * 1.26, 1.6 + jaw);
-    ctx.closePath(); ctx.fill();
-    if (this.belly > 0.2) {
-      ctx.fillStyle = `rgba(40,60,25,${0.25 + this.belly * 0.35})`;
+    ctx.moveTo(-s*0.92,-2.5);ctx.lineTo(-s*1.10,0.5);ctx.lineTo(-s*0.92,3);
+    ctx.closePath();ctx.fill();
+
+    // —— 后腿 ——
+    for(const sd of [-1,1]){
+      const base=basking?1.15:gliding?2.45:2.15;
+      const row=(basking||gliding)?0:Math.sin(this.paddlePhase*0.8+(sd<0?0:Math.PI))*0.30*amp;
+      this.flipper(-s*0.42,sd*s*0.42,sd,sd*base+row,basking?1.0:gliding?0.6:0.9,skin,stripe);
+    }
+
+    // —— 背甲: 暗橄榄, 纹路淡 ——
+    const g=ctx.createRadialGradient(-s*0.2,-s*0.28,3,0,0,s*1.1);
+    g.addColorStop(0,"#525e36");g.addColorStop(0.55,"#414c2a");g.addColorStop(1,"#28311a");
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.ellipse(0,0,s,s*0.52,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="rgba(200,185,120,.40)";ctx.lineWidth=1.6; // 腹甲边缘
+    ctx.beginPath();ctx.ellipse(0,s*0.06,s*0.94,s*0.46,0,0.25,Math.PI-0.25);ctx.stroke();
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(0,0,s*0.96,s*0.49,0,0,Math.PI*2);ctx.clip();
+    const scute=(cx,cy,rw,rh,rot)=>{
       ctx.beginPath();
-      ctx.ellipse(0, s * 0.35, s * 0.55 * this.belly, s * 0.18 * this.belly, 0, 0, Math.PI * 2);
-      ctx.fill();
+      for(let i=0;i<6;i++){const a=rot+i*Math.PI/3,px=cx+Math.cos(a)*rw,py=cy+Math.sin(a)*rh;
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+      ctx.closePath();
+      ctx.strokeStyle="rgba(185,170,100,.42)";ctx.lineWidth=0.9;ctx.stroke();
+      ctx.fillStyle="rgba(20,25,12,.30)"; // 淡暗斑
+      ctx.beginPath();ctx.ellipse(cx,cy,rw*0.36,rh*0.36,rot,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle="rgba(185,170,100,.25)";ctx.lineWidth=0.7; // 生长纹
+      ctx.beginPath();ctx.ellipse(cx,cy,rw*0.62,rh*0.62,rot,0,Math.PI*2);ctx.stroke();
+    };
+    [-0.62,-0.34,-0.05,0.24,0.50].forEach((fx2,i)=>scute(s*fx2,0,s*0.20,s*0.20,i*0.06));
+    for(const sd of [-1,1])
+      [-0.50,-0.20,0.08,0.34].forEach((fx2,i)=>scute(s*fx2,sd*s*0.28,s*0.185,s*0.165,sd*0.1+i*0.05));
+    ctx.fillStyle="rgba(255,255,225,.06)"; // 微弱顶光
+    ctx.beginPath();ctx.ellipse(-s*0.1,-s*0.2,s*0.55,s*0.22,0,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    ctx.fillStyle="#333f22"; // 后缘轻微锯齿
+    for(let i=0;i<6;i++){
+      const a2=Math.PI*(0.62+i*0.15);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a2)*s*0.97,Math.sin(a2)*s*0.51);
+      ctx.lineTo(Math.cos(a2+0.09)*s*1.03,Math.sin(a2+0.09)*s*0.55);
+      ctx.lineTo(Math.cos(a2-0.09)*s*0.93,Math.sin(a2-0.09)*s*0.48);
+      ctx.closePath();ctx.fill();
+    }
+
+    // —— 前腿 ——
+    for(const sd of [-1,1]){
+      const base=basking?0.95:surfing?-0.45:gliding?2.60:0.80;
+      const row=(basking||surfing||gliding)?0:Math.sin(this.paddlePhase+(sd<0?Math.PI:0))*0.55*amp;
+      this.flipper(s*0.48,sd*s*0.38,sd,sd*base+row,basking?1.05:gliding?0.6:0.95,skin,stripe);
+    }
+
+    // —— 颈 + 小头 ——
+    const jaw=this.eatTimer>0?2.4*Math.sin((0.55-this.eatTimer)*14):0;
+    const lift=basking?-10:surfing?-7:this.state==="hunt"?1.5:0;
+    ctx.save();
+    ctx.translate(s*0.80,1);
+    ctx.rotate(this.headPitch*0.8+this.headYaw*0.2);
+    ctx.fillStyle=skin; // 粗短颈
+    ctx.beginPath();
+    ctx.moveTo(-3,-5);
+    ctx.quadraticCurveTo(s*0.22,-6+lift*0.4,s*0.36,lift);
+    ctx.lineTo(s*0.36,lift+7);
+    ctx.quadraticCurveTo(s*0.20,1+lift*0.4,-3,5);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle=stripe;ctx.lineWidth=0.9; // 颈细纹
+    for(let k=0;k<2;k++){
+      ctx.beginPath();ctx.moveTo(-1,-3+k*5);
+      ctx.quadraticCurveTo(s*0.20,-3+k*5+lift*0.35,s*0.34,lift-1+k*5);ctx.stroke();
+    }
+    ctx.fillStyle="rgba(40,48,28,.5)"; // 颈斑点
+    for(let k=0;k<4;k++){
+      ctx.beginPath();
+      ctx.arc(s*0.10+k*s*0.07,(k%2?3:-2)+lift*0.2,1.1,0,Math.PI*2);ctx.fill();
+    }
+    ctx.translate(s*0.36,lift);
+    ctx.rotate(this.headYaw*0.3);
+    ctx.fillStyle="#56603c"; // 小头
+    ctx.beginPath();ctx.ellipse(5,0,7.5,5,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=stripe;ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.moveTo(-1,-3);ctx.quadraticCurveTo(4,-3.6,9,-1.6);ctx.stroke();
+    ctx.fillStyle="#a83a26"; // 红耳斑: 细长一 streak
+    ctx.beginPath();ctx.ellipse(1.5,-4.4,3.6,1.5,0.25,0,Math.PI*2);ctx.fill();
+    const eyeX=5.5,eyeY=-1.2; // 小而暗的眼
+    if(this.blink>0){
+      ctx.strokeStyle="#333d28";ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(eyeX-2.2,eyeY);ctx.lineTo(eyeX+2.2,eyeY);ctx.stroke();
+    }else{
+      const hh=basking?0.5:1;
+      ctx.fillStyle="#1a2012";
+      ctx.beginPath();ctx.ellipse(eyeX,eyeY,1.9,1.9*hh,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.7)";
+      ctx.beginPath();ctx.arc(eyeX+0.7,eyeY-0.6,0.55,0,Math.PI*2);ctx.fill();
+    }
+    ctx.fillStyle="#3d452c"; // 吻端
+    ctx.beginPath();ctx.ellipse(10.5,2.2,3,2,0.15,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="rgba(30,36,20,.8)";ctx.lineWidth=1; // 嘴线
+    ctx.beginPath();ctx.moveTo(8.5,2.6+jaw*0.4);ctx.quadraticCurveTo(11,3.4+jaw,13,3);ctx.stroke();
+    ctx.restore();
+
+    // 皮肤碎斑(身体两侧)
+    ctx.fillStyle="rgba(35,42,24,.35)";
+    for(let k=0;k<5;k++){
+      ctx.beginPath();
+      ctx.arc(-s*0.5+k*s*0.22,(k%2?1:-1)*s*0.30,1.2,0,Math.PI*2);ctx.fill();
+    }
+
+    if(this.belly>0.2){
+      ctx.fillStyle=`rgba(40,60,25,${0.22+this.belly*0.3})`;
+      ctx.beginPath();ctx.ellipse(0,s*0.30,s*0.55*this.belly,s*0.15*this.belly,0,0,Math.PI*2);ctx.fill();
+    }
+    if(this.frenzy){
+      ctx.fillStyle=`rgba(255,60,30,${0.6+Math.sin(t*8)*0.3})`;
+      ctx.font="bold 12px sans-serif";ctx.textAlign="center";
+      ctx.fillText("!!",0,-s*0.72);
     }
     ctx.restore();
   }
 }
 
-/* —— audio —— */
-let audioCtx = null;
-function playBlip(freq = 480) {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    const t0 = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, t0);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t0 + 0.12);
-    gain.gain.setValueAtTime(0.001, t0);
-    gain.gain.exponentialRampToValueAtTime(0.12, t0 + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.15);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(t0); osc.stop(t0 + 0.16);
-  } catch (_) {}
+/* ================= toast & 警报 ================= */
+const toastEl=document.getElementById("toast");
+const alertEl=document.getElementById("alert");
+let toastTimer=null;const toastQ=[];
+function toast(msg){
+  if(toastQ.length>2)toastQ.shift();
+  toastQ.push(msg);
+  if(!toastTimer)nextToast();
+}
+function nextToast(){
+  const m=toastQ.shift();
+  if(!m){toastTimer=null;return;}
+  toastEl.textContent=m;toastEl.classList.add("show");
+  toastTimer=setTimeout(()=>{
+    toastEl.classList.remove("show");
+    toastTimer=setTimeout(nextToast,300);
+  },1500);
 }
 
-/* —— setup —— */
-let fishes = PALETTES.slice(0, 3).map(p => new Goldfish(p));
-let turtle = new Turtle();
+/* ================= HUD ================= */
+const $=id=>document.getElementById(id);
+const qFill=$("qFill"),qVal=$("qVal"),oFill=$("oFill"),oVal=$("oVal"),
+      wFill=$("wFill"),wVal=$("wVal"),fishVal=$("fishVal"),
+      dayVal=$("dayVal"),filterVal=$("filterVal"),adviceEl=$("advice"),
+      dQ=$("dQ"),dO=$("dO"),dW=$("dW"),dashMini=$("dashMini"),
+      dashEl=$("dash"),dashPill=$("dashPill");
+dashPill.onclick=e=>{e.stopPropagation();dashEl.classList.toggle("open");};
+const barColor=v=>v>0.55?"#3dcc7a":v>0.3?"#d4a017":"#d4452f";
+function advice(){
+  const tips=[];
+  if(waste>0.55&&!filterOn)tips.push("开过滤");
+  if(waste>0.7)tips.push("换水");
+  if(oxygen<0.35)tips.push("缺氧");
+  if(foods.filter(f=>!f.eaten&&f.age>6).length>2)tips.push("残饵多");
+  const hungry=fishes.filter(f=>f.alive&&f.hunger<0.25).length;
+  if(hungry)tips.push(hungry+"条鱼饿");
+  if(fishes.filter(f=>f.alive).length>=MAX_FISH)tips.push("已满员");
+  return tips.slice(0,2).join(" · ")||"生态稳定 🌿";
+}
+let hudT=0;
+function updateHUD(dt){
+  hudT-=dt;if(hudT>0)return;hudT=0.25;   // 4Hz 刷新 DOM 即可
+  const q=Math.round(quality*100),o=Math.round(oxygen*100),w=Math.round(waste*100);
+  qFill.style.width=q+"%";qFill.style.background=barColor(quality);qVal.textContent=q+"%";
+  oFill.style.width=o+"%";
+  oFill.style.background=oxygen>0.55?"#5ec8ff":oxygen>0.3?"#d4a017":"#d4452f";
+  oVal.textContent=o+"%";
+  wFill.style.width=w+"%";
+  wFill.style.background=waste>0.6?"#d4452f":waste>0.35?"#d4a017":"#3dcc7a";
+  wVal.textContent=w+"%";
+  const alive=fishes.filter(f=>f.alive).length;
+  const babies=fishes.filter(f=>f.alive&&f.stage==="baby").length;
+  fishVal.textContent="🐟 "+alive+(babies?"(幼"+babies+")":"")+(eggs.length?" 🥚"+eggs.length:"");
+  dayVal.textContent=dayTarget>0.5?"☀️":"🌙";
+  filterVal.textContent=filterOn?"🌀开":"🌀关";
+  adviceEl.textContent=advice();
+  // 小药丸: 三色状态点 + 水质百分比
+  dQ.style.background=barColor(quality);
+  dO.style.background=oxygen>0.55?"#5ec8ff":oxygen>0.3?"#d4a017":"#d4452f";
+  dW.style.background=waste>0.6?"#d4452f":waste>0.35?"#d4a017":"#3dcc7a";
+  dashMini.textContent="水质"+q+"%";
+  let msg="";
+  if(quality<0.18)msg="⚠️ 水质危险! 请换水";
+  else if(oxygen<0.2)msg="⚠️ 严重缺氧! 请开过滤";
+  else if(fishes.some(f=>f.alive&&f.hunger<0.12))msg="⚠️ 有鱼快饿死了!";
+  dashPill.classList.toggle("warn",!!msg);
+  if(msg){alertEl.textContent=msg;alertEl.classList.add("show");}
+  else alertEl.classList.remove("show");
+}
 
-function randomFeedBurst() {
-  const x = rand(W * 0.25, W * 0.75);
-  for (let i = 0; i < 3; i++) dropFood(x + rand(-16, 16), surfaceY() + 8 + i * 4);
-  playBlip(620);
+/* ================= 生态 ================= */
+function updateEco(dt){
+  // 昼夜平滑过渡
+  dayness+=(dayTarget-dayness)*Math.min(1,dt*0.7);
+  if(Math.abs(dayTarget-dayness)>0.02)staticDirty=true;
+  if(filterOn){
+    waste=Math.max(0,waste-0.030*dt);
+    oxygen=Math.min(1,oxygen+0.020*dt);
+  }else{
+    oxygen=clamp(oxygen+(dayness>0.5?0.008:-0.004)*dt,0,1);
+  }
+  const n=fishes.filter(f=>f.alive).length;
+  if(n>6)waste=Math.min(1,waste+0.002*(n-6)*dt);   // 过密加剧污染
+  if(dayness<0.5)oxygen=Math.max(0,oxygen-0.004*dt); // 夜晚耗氧
+  // 水质由废物和密度推导, 平滑跟随 —— 因果看得见
+  const target=clamp(1-waste*0.9-Math.max(0,n-6)*0.03,0,1);
+  quality+=(target-quality)*Math.min(1,dt*0.6);
+  fishes=fishes.filter(f=>f.alive);
 }
-function changeWater() {
-  waterQuality = Math.min(1, waterQuality + 0.45);
-  nutrients = Math.max(0, nutrients - 0.15);
-  oxygen = Math.min(1, oxygen + 0.2);
-  playBlip(360);
+
+/* ================= 操作 ================= */
+function feedAction(x){
+  dropFood(x==null?rand(W*0.3,W*0.7):x,surfaceY()+8,3);
+  blip(620,0.1,0.08);
 }
-function toggleFilter() {
-  filterOn = !filterOn;
-  const btn = document.getElementById("btnFilter");
-  btn.textContent = filterOn ? "🌀 开过滤" : "🌀 过滤";
-  btn.style.borderColor = filterOn ? "#3dcc7a" : "";
-  btn.style.color = filterOn ? "#3dcc7a" : "";
-  playBlip(filterOn ? 500 : 280);
+function waterAction(){
+  waste*=0.45;oxygen=Math.min(1,oxygen+0.25);
+  toast("💧 已换水, 水质提升");blip(360,0.15,0.09);
 }
-function addAdultGoldfish() {
-  if (fishes.filter(f => f.alive).length >= MAX_FISH) { playBlip(180); return; }
-  const hue = { ...PALETTES[Math.floor(Math.random() * PALETTES.length)] };
-  if (!hue.patch && Math.random() < 0.5) hue.patch = "rgba(255,255,255,.5)";
-  const g = new Goldfish(hue, "adult");
-  g.size = rand(1.05, 1.25);
-  g.hunger = 0.55;
-  g.x = rand(W * 0.25, W * 0.75);
-  g.y = rand(surfaceY() + 30, floorY() - 30);
+function filterAction(){
+  filterOn=!filterOn;
+  $("tFilter").classList.toggle("on",filterOn);
+  toast(filterOn?"🌀 过滤已开启":"🌀 过滤已关闭");
+  blip(filterOn?500:280,0.12,0.09);
+}
+function addFishAction(){
+  if(fishes.filter(f=>f.alive).length>=MAX_FISH){toast("🐟 鱼缸满了!");blip(180,0.15,0.08);return;}
+  const hue=Object.assign({},PALETTES[(Math.random()*PALETTES.length)|0]);
+  if(!hue.patch&&Math.random()<0.5)hue.patch="rgba(255,255,255,.5)";
+  const g=new Goldfish(hue,"adult");
+  g.size=rand(1.0,1.2);g.hunger=0.55;
+  g.x=rand(W*0.25,W*0.75);g.y=rand(surfaceY()+30,floorY()-30);
   fishes.push(g);
-  playBlip(640);
+  toast("🐟 新金鱼入缸!");blip(640,0.12,0.09);
 }
+function dayAction(){
+  dayTarget=dayTarget>0.5?0:1;
+  toast(dayTarget>0.5?"☀️ 白天":"🌙 夜晚");
+  blip(dayTarget>0.5?700:300,0.15,0.09);
+}
+$("tFeed").onclick=()=>feedAction();
+$("tWater").onclick=waterAction;
+$("tFilter").onclick=filterAction;
+$("tAdd").onclick=addFishAction;
+$("tDay").onclick=dayAction;
+const panel=$("panel");
+$("tMore").onclick=()=>panel.classList.add("show");
+$("pClose").onclick=()=>panel.classList.remove("show");
+panel.addEventListener("click",e=>{if(e.target===panel)panel.classList.remove("show");});
+$("pTrim").onclick=()=>trimPlants();
+$("pFrenzy").onclick=()=>{
+  turtle.frenzy=true;turtle.frenzyTimer=20;
+  toast("⚠️ 乌龟狂暴20秒! 会攻击所有鱼");
+  panel.classList.remove("show");
+  blip(140,0.3,0.12,"sawtooth");
+};
+$("pReset").onclick=()=>location.reload();
 
-document.getElementById("btnFeed").addEventListener("click", randomFeedBurst);
-document.getElementById("btnCycle").addEventListener("click", () => {
-  isNight = !isNight; staticDirty = true; playBlip(isNight ? 300 : 700);
-});
-document.getElementById("btnWater").addEventListener("click", changeWater);
-document.getElementById("btnFilter").addEventListener("click", toggleFilter);
-document.getElementById("btnTrim").addEventListener("click", trimPlants);
-document.getElementById("btnAddFish").addEventListener("click", addAdultGoldfish);
+/* ================= 手势: 点按投食 / 长按开面板 ================= */
+(function(){
+  const TAP_LIM=14,LP_MS=550;
+  let tracking=false,sx=0,sy=0,lpTimer=null,lpFired=false;
+  const pos=e=>{const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
+  canvas.addEventListener("pointerdown",e=>{
+    if(panel.classList.contains("show"))return;
+    dashEl.classList.remove("open"); // 点鱼缸时收起仪表盘
+    tracking=true;lpFired=false;
+    const p=pos(e);sx=p.x;sy=p.y;
+    try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+    clearTimeout(lpTimer);
+    lpTimer=setTimeout(()=>{lpFired=true;panel.classList.add("show");},LP_MS);
+  });
+  canvas.addEventListener("pointermove",e=>{
+    if(!tracking||lpFired)return;
+    const p=pos(e);
+    if(Math.hypot(p.x-sx,p.y-sy)>TAP_LIM){clearTimeout(lpTimer);e.preventDefault();}
+  });
+  canvas.addEventListener("pointerup",e=>{
+    if(!tracking)return;tracking=false;clearTimeout(lpTimer);
+    if(lpFired)return;
+    const p=pos(e);
+    if(Math.hypot(p.x-sx,p.y-sy)<TAP_LIM)feedAction(p.x);
+  });
+  canvas.addEventListener("pointercancel",()=>{tracking=false;clearTimeout(lpTimer);});
+})();
+document.addEventListener("contextmenu",e=>e.preventDefault());
 
-/* —— 鱼缸动态尺寸：始终按最大可用空间的95%显示（无侧栏占用） —— */
-(function () {
-  const app = document.getElementById("app");
-  const stage = document.getElementById("stage");
-
-  let fitQueued = false;
-  function fitStage() {
-    fitQueued = false;
-    const bs = getComputedStyle(document.body);
-    const padH = (parseFloat(bs.paddingTop) || 0) + (parseFloat(bs.paddingBottom) || 0);
-    const padW = (parseFloat(bs.paddingLeft) || 0) + (parseFloat(bs.paddingRight) || 0);
-    const viewport = window.visualViewport;
-    const vw = viewport ? viewport.width : window.innerWidth;
-    const vh = viewport ? viewport.height : window.innerHeight;
-    const availH = vh - padH;
-    const availW = vw - padW;
-    let w = Math.max(0, availW) * 0.95;
-    let h = Math.max(0, availH) * 0.95;
-    if (w < 60 || h < 60) return;
-    stage.style.width = Math.floor(w) + "px";
-    stage.style.height = Math.floor(h) + "px";
+/* ================= 自适应尺寸 ================= */
+(function(){
+  const stage=$("stage");
+  let queued=false;
+  function fit(){
+    queued=false;
+    const bs=getComputedStyle(document.body);
+    const ph=(parseFloat(bs.paddingTop)||0)+(parseFloat(bs.paddingBottom)||0);
+    const pw=(parseFloat(bs.paddingLeft)||0)+(parseFloat(bs.paddingRight)||0);
+    const vv=window.visualViewport;
+    const vw=vv?vv.width:window.innerWidth,vh=vv?vv.height:window.innerHeight;
+    const w=Math.max(0,vw-pw)*0.95,h=Math.max(0,vh-ph)*0.95;
+    if(w<60||h<60)return;
+    stage.style.width=Math.floor(w)+"px";
+    stage.style.height=Math.floor(h)+"px";
     scheduleResize();
   }
-
-  function queueFit(){
-    if (fitQueued) return;
-    fitQueued = true;
-    requestAnimationFrame(fitStage);
-  }
-  fitStage();
-  window.addEventListener("resize", queueFit);
-  window.addEventListener("orientationchange", () => setTimeout(queueFit, 80));
-  if (window.visualViewport) window.visualViewport.addEventListener("resize", queueFit);
+  function q(){if(queued)return;queued=true;requestAnimationFrame(fit);}
+  fit();
+  window.addEventListener("resize",q);
+  window.addEventListener("orientationchange",()=>setTimeout(q,80));
+  if(window.visualViewport)window.visualViewport.addEventListener("resize",q);
 })();
 
-/* —— 悬浮统一菜单：长按唤出 / 仅右上角✕关闭 —— */
-const menuOverlay = document.getElementById("menuOverlay");
-function openMenu() { menuOverlay.classList.add("show"); }
-function closeMenu() { menuOverlay.classList.remove("show"); }
-document.getElementById("btnCloseMenu").addEventListener("click", closeMenu);
-
-/* —— 手势反馈提示 —— */
-const gestureToast = document.getElementById("gestureToast");
-let gestureToastT = 0;
-function flashGestureToast(text) {
-  gestureToast.textContent = text;
-  gestureToast.classList.add("show");
-  clearTimeout(gestureToastT);
-  gestureToastT = setTimeout(() => gestureToast.classList.remove("show"), 1100);
-}
-
-const FRENZY_DURATION = 14;
-
-/* —— 鱼缸手势识别：长按=菜单 / 点击=投食(多点多投) / 画圈=换水 / 画✅=开关过滤 / ←→划=修剪 / ↑划=昼夜 / ↓划=加鱼 —— */
-(function () {
-  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-  const TAP_MOVE_LIMIT = 14;     // 移动小于此值视为"点击"而非"划线"
-  const LONG_PRESS_MS = 550;     // 长按唤出菜单所需时长
-  const MIN_SWIPE = 55;          // 直线划动的最小位移
-
-  let tracking = false;
-  let points = [];
-  let downPt = null;
-  let longPressTimer = null;
-  let longPressFired = false;
-
-  function localPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
-  function classifyGesture(pts) {
-    const n = pts.length;
-    if (n < 8) return null;
-    let cx = 0, cy = 0;
-    for (const p of pts) { cx += p.x; cy += p.y; }
-    cx /= n; cy /= n;
-    let minR = Infinity, maxR = 0;
-    for (const p of pts) {
-      const r = Math.hypot(p.x - cx, p.y - cy);
-      if (r < minR) minR = r;
-      if (r > maxR) maxR = r;
-    }
-    let totalAngle = 0;
-    for (let i = 1; i < n; i++) {
-      const a1 = Math.atan2(pts[i - 1].y - cy, pts[i - 1].x - cx);
-      const a2 = Math.atan2(pts[i].y - cy, pts[i].x - cx);
-      let d = a2 - a1;
-      while (d > Math.PI) d -= 2 * Math.PI;
-      while (d < -Math.PI) d += 2 * Math.PI;
-      totalAngle += d;
-    }
-    const closeLoop = dist(pts[0], pts[n - 1]) < Math.max(45, maxR * 0.7);
-    const roundness = maxR > 0 ? minR / maxR : 0;
-    if (Math.abs(totalAngle) > Math.PI * 1.25 && closeLoop && roundness > 0.3 && maxR > 16) {
-      return "circle";
-    }
-    let vi = 0;
-    for (let i = 1; i < n; i++) if (pts[i].y > pts[vi].y) vi = i;
-    const start = pts[0], vertex = pts[vi], end = pts[n - 1];
-    const seg1dy = vertex.y - start.y;
-    const seg2dx = end.x - vertex.x, seg2dy = end.y - vertex.y;
-    const seg1len = Math.hypot(vertex.x - start.x, seg1dy);
-    const seg2len = Math.hypot(seg2dx, seg2dy);
-    const vertexMid = vi > n * 0.06 && vi < n * 0.8;
-    if (vertexMid && seg1dy > 4 && seg2dy < -4 && seg2len > seg1len * 0.85) {
-      return "check";
-    }
-    // 直线划动：左右修剪 / 上下昼夜 / 上下加鱼
-    let pathLen = 0;
-    for (let i = 1; i < n; i++) pathLen += dist(pts[i - 1], pts[i]);
-    const dx = end.x - start.x, dy = end.y - start.y;
-    const netDist = Math.hypot(dx, dy);
-    const straightness = pathLen > 0 ? netDist / pathLen : 0;
-    if (straightness > 0.75 && netDist > MIN_SWIPE) {
-      if (Math.abs(dx) > Math.abs(dy) * 1.5) return dx > 0 ? "swipe-right" : "swipe-left";
-      if (Math.abs(dy) > Math.abs(dx) * 1.5) return dy < 0 ? "swipe-up" : "swipe-down";
-    }
-    return null;
-  }
-
-  function onDown(e) {
-    if (menuOverlay.classList.contains("show")) return;
-    tracking = true;
-    longPressFired = false;
-    downPt = localPos(e);
-    points = [downPt];
-    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-    clearTimeout(longPressTimer);
-    longPressTimer = setTimeout(() => {
-      longPressFired = true;
-      openMenu();
-    }, LONG_PRESS_MS);
-  }
-  function onMove(e) {
-    if (!tracking || longPressFired) return;
-    const p = localPos(e);
-    const last = points[points.length - 1];
-    if (dist(last, p) > 3) points.push(p);
-    if (dist(downPt, p) > TAP_MOVE_LIMIT) {
-      clearTimeout(longPressTimer);
-      e.preventDefault();
-    }
-  }
-  function onUp(e) {
-    if (!tracking) return;
-    tracking = false;
-    clearTimeout(longPressTimer);
-    if (longPressFired) { points = []; return; }
-    const upPt = localPos(e);
-    let maxSpread = 0;
-    for (const p of points) maxSpread = Math.max(maxSpread, dist(downPt, p));
-    if (maxSpread < TAP_MOVE_LIMIT) {
-      // 点击：每点一下投一粒食物，多点多投
-      dropFood(upPt.x, surfaceY() + 6);
-      playBlip(560);
-      points = [];
-      return;
-    }
-    const g = classifyGesture(points);
-    if (g === "circle") {
-      changeWater();
-      flashGestureToast("🔄 已自动换水");
-    } else if (g === "check") {
-      toggleFilter();
-      flashGestureToast(filterOn ? "✅ 已开启过滤" : "⏸ 已关闭过滤");
-    } else if (g === "swipe-right") {
-      trimPlants();
-      flashGestureToast("🌿 已修剪水草");
-    } else if (g === "swipe-left") {
-      turtle.frenzy = true;
-      turtle.frenzyTimer = FRENZY_DURATION;
-      flashGestureToast("🦖 乌龟疯狂吃鱼模式！");
-    } else if (g === "swipe-up") {
-      isNight = !isNight; staticDirty = true; playBlip(isNight ? 300 : 700);
-      flashGestureToast(isNight ? "🌙 夜晚模式" : "☀️ 白天模式");
-    } else if (g === "swipe-down") {
-      addAdultGoldfish();
-      flashGestureToast("🐟 已添加金鱼");
-    }
-    points = [];
-  }
-  function onCancel() {
-    tracking = false;
-    longPressFired = false;
-    clearTimeout(longPressTimer);
-    points = [];
-  }
-
-  canvas.addEventListener("pointerdown", onDown);
-  canvas.addEventListener("pointermove", onMove, { passive: false });
-  canvas.addEventListener("pointerup", onUp);
-  canvas.addEventListener("pointercancel", onCancel);
-})();
-
-const wqBar = document.getElementById("wqBar");
-const oxBar = document.getElementById("oxBar");
-const popStatHud = document.getElementById("popStatHud");
-const wqMonitorEl = document.getElementById("wqMonitor");
-const tempRead=document.getElementById("tempRead"), phRead=document.getElementById("phRead"), nutRead=document.getElementById("nutRead"), oxRead=document.getElementById("oxRead");
-
-function updateHUD() {
-  const pct = Math.round(waterQuality * 100);
-  wqBar.style.width = pct + "%";
-  wqBar.style.background = waterQuality > 0.55 ? "#3dcc7a" : waterQuality > 0.3 ? "#d4a017" : "#d4452f";
-  const ox = Math.round(oxygen * 100);
-  tempRead.textContent = (isNight ? 22.6 : 24.0).toFixed(1) + "°C";
-  phRead.textContent = (6.8 + waterQuality * .6).toFixed(1);
-  nutRead.textContent = Math.round(nutrients*100) + "%";
-  oxRead.textContent = ox + "%";
-  oxBar.style.width = ox + "%";
-  oxBar.style.background = oxygen > 0.55 ? "#5ec8ff" : oxygen > 0.3 ? "#d4a017" : "#d4452f";
-  const alive = fishes.filter(f => f.alive).length;
-  const babies = fishes.filter(f => f.alive && f.stage === "baby").length;
-  const hideN = fishes.filter(f => f.alive && f.hiding).length;
-  const armorN = fishes.filter(f => f.alive && f.armor >= 0.4).length;
-  const stressN = fishes.filter(f => f.alive && f.stressLevel() > 0.4).length;
-  let extra = "";
-  if (babies) extra += ` · 幼${babies}`;
-  if (eggs.length) extra += ` · 卵${eggs.length}`;
-  if (hideN) extra += ` · 藏${hideN}`;
-  if (armorN) extra += ` · 甲${armorN}`;
-  if (stressN) extra += ` · 压${stressN}`;
-  if (turtle.peaceful) extra += ` · 和平`;
-  popStatHud.textContent = `🐟 ${alive}` + extra;
-  const g = wqGrade(waterQuality);
-  wqMonitorEl.className = g.cls;
-  wqMonitorEl.innerHTML =
-    `水质监测 · <b>${g.label}</b> ${pct}%${wqTrend()} · O₂${ox}% · 肥${Math.round(nutrients * 100)}%` +
-    (filterOn ? " · 过滤开" : "") +
-    `<span style="opacity:.85"> · ${wqAdvice()}</span>`;
-  if (wqAlertTimer <= 0) document.getElementById("wqAlert").classList.remove("show");
-}
-
-function updateEco(dt) {
-  const n = fishes.filter(f => f.alive).length;
-  if (filterOn) {
-    waterQuality = Math.min(1, waterQuality + 0.028 * dt);
-    nutrients = Math.max(0, nutrients - 0.012 * dt);
-    oxygen = Math.min(1, oxygen + 0.018 * dt);
-  } else waterQuality = clamp(waterQuality + 0.002 * dt, 0, 1);
-  oxygen = clamp(oxygen + (isNight ? -0.006 : 0.01) * dt, 0, 1);
-  if (n > 4) {
-    waterQuality = Math.max(0, waterQuality - 0.003 * (n - 4) * dt);
-    oxygen = Math.max(0, oxygen - 0.005 * (n - 4) * dt);
-  }
-  if (isNight && n > 5) waterQuality = Math.max(0, waterQuality - 0.003 * (n - 5) * dt);
-  oxygen = Math.max(0, oxygen - 0.01 * dt);
-  wqSampleAcc += dt;
-  if (wqSampleAcc >= 0.45) { wqSampleAcc = 0; pushWqSample(); }
-  if (wqAlertTimer > 0) wqAlertTimer -= dt;
-  fishes = fishes.filter(f => f.alive);
-}
-
-let last = performance.now();
-const actors = [];
-function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now; t += dt;
-  updateBubbles(dt); updateFood(dt); updateEggs(dt);
-  updatePlants(dt); updateEco(dt);
+/* ================= 初始化 & 主循环 ================= */
+fishes=PALETTES.slice(0,3).map(p=>new Goldfish(p,"adult"));
+turtle=new Turtle();
+const actors=[];
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;t+=dt;
+  updateBubbles(dt);updateFood(dt);updateEggs(dt);
+  updatePlants(dt);updateEco(dt);
   turtle.update(dt);
-  for (let i = 0; i < fishes.length; i++) fishes[i].update(dt);
-  if (staticDirty) rebuildStaticLayer();
-  ctx.clearRect(0, 0, W, H);
+  for(const f of fishes)f.update(dt);
+  if(staticDirty||Math.abs(dayness-lastDayness)>0.02)rebuildStatic();
+  ctx.clearRect(0,0,W,H);
   drawWater();
-  ctx.drawImage(staticCanvas, 0, 0, W, H);
-  drawPlants(); drawEggs(); drawBubbles(); drawFood();
-  actors.length = 0;
-  actors.push(turtle);
-  for (let i = 0; i < fishes.length; i++) actors.push(fishes[i]);
-  actors.sort((a, b) => a.y - b.y);
-  for (let i = 0; i < actors.length; i++) actors[i].draw();
-  updateHUD();
+  ctx.drawImage(staticCanvas,0,0,W,H);
+  drawCaustics();
+  drawPlants();drawEggs();drawBubbles();drawFood();
+  actors.length=0;actors.push(turtle);
+  for(const f of fishes)actors.push(f);
+  actors.sort((a,b)=>a.y-b.y);
+  for(const a of actors)a.draw();
+  updateHUD(dt);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
