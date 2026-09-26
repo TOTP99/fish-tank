@@ -77,6 +77,16 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 #toolbar button.on{border-color:#3dcc7a;color:#7dffab;
   box-shadow:0 0 10px rgba(61,204,122,.35)}
 #toolbar button.warn{border-color:rgba(255,120,90,.55);color:#ffb3a0}
+#toolbar{transition:transform .25s,opacity .25s}
+#toolbar.hidden{opacity:0;transform:translateX(-50%) translateY(16px);pointer-events:none}
+
+/* —— 右下工具栏开关(仿仪表盘药丸) —— */
+#toolToggle{position:absolute;right:10px;bottom:10px;z-index:6;width:42px;height:42px;
+  border-radius:50%;border:1px solid rgba(120,190,205,.35);
+  background:rgba(8,18,26,.55);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);color:#d9f4f7;font-size:18px;cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+#toolToggle:active{transform:scale(.92)}
 
 /* —— 顶部警报 —— */
 #alert{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:7;
@@ -143,6 +153,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
         <button id="tDay">🌗 昼夜</button>
         <button id="tMore">⚙️ 更多</button>
       </div>
+      <button id="toolToggle" aria-label="收起或展开工具栏">⌄</button>
     </div>
   </div>
 </div>
@@ -166,7 +177,8 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
       <b>操作</b><br>
       · 点一下鱼缸 = 在点击处投食（可连点）<br>
       · 长按鱼缸 = 打开这个面板<br>
-      · 工具栏按钮 = 投食 / 换水 / 开关过滤 / 加鱼 / 切换昼夜
+      · 工具栏按钮 = 投食 / 换水 / 开关过滤 / 加鱼 / 切换昼夜<br>
+      · 右下角 🧰/⌄ = 收起或展开底部工具栏（横竖屏通用）
     </div>
     <div class="sec">⚠️ 乌龟狂暴模式下乌龟会攻击所有鱼，慎用。</div>
   </div>
@@ -1198,6 +1210,17 @@ const qFill=$("qFill"),qVal=$("qVal"),oFill=$("oFill"),oVal=$("oVal"),
       dQ=$("dQ"),dO=$("dO"),dW=$("dW"),dashMini=$("dashMini"),
       dashEl=$("dash"),dashPill=$("dashPill");
 dashPill.onclick=e=>{e.stopPropagation();dashEl.classList.toggle("open");};
+
+/* —— 底部工具栏收起/展开(横竖屏统一) —— */
+const toolbar=$("toolbar"),toolToggle=$("toolToggle");
+let toolsHidden=false;
+function setTools(hidden){
+  toolsHidden=hidden;
+  toolbar.classList.toggle("hidden",hidden);
+  toolToggle.textContent=hidden?"🧰":"⌄";
+  toolToggle.setAttribute("aria-label",hidden?"展开工具栏":"收起工具栏");
+}
+toolToggle.onclick=e=>{e.stopPropagation();setTools(!toolsHidden);};
 const barColor=v=>v>0.55?"#3dcc7a":v>0.3?"#d4a017":"#d4452f";
 function advice(){
   const tips=[];
