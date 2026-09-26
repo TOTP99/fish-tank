@@ -178,7 +178,8 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
       · 点一下鱼缸 = 在点击处投食（可连点）<br>
       · 长按鱼缸 = 打开这个面板<br>
       · 工具栏按钮 = 投食 / 换水 / 开关过滤 / 加鱼 / 切换昼夜<br>
-      · 右下角 🧰/⌄ = 收起或展开底部工具栏（横竖屏通用）
+      · 右下角 🧰/⌄ = 收起或展开底部工具栏（横竖屏通用）<br>
+      · 每 5 秒自动存档，刷新/重进后继续；真要重开用管理面板「↺ 重置鱼缸」
     </div>
     <div class="sec">⚠️ 乌龟狂暴模式下乌龟会攻击所有鱼，慎用。</div>
   </div>
@@ -1330,7 +1331,7 @@ $("pFrenzy").onclick=()=>{
   panel.classList.remove("show");
   blip(140,0.3,0.12,"sawtooth");
 };
-$("pReset").onclick=()=>location.reload();
+$("pReset").onclick=()=>{try{localStorage.removeItem(SAVE_KEY);}catch(e){}location.reload();};
 
 /* ================= 手势: 点按投食 / 长按开面板 ================= */
 (function(){
@@ -1388,10 +1389,59 @@ document.addEventListener("contextmenu",e=>e.preventDefault());
 /* ================= 初始化 & 主循环 ================= */
 fishes=PALETTES.slice(0,3).map(p=>new Goldfish(p,"adult"));
 turtle=new Turtle();
+
+/* ================= 自动存档(localStorage) ================= */
+const SAVE_KEY="fishtank-save-v1";
+let saveT=0;
+function saveGame(){
+  try{
+    const snap={v:1,
+      waste,quality,oxygen,filterOn,dayTarget,dayness,
+      fishes:fishes.filter(f=>f.alive).map(f=>({x:f.x,y:f.y,dir:f.dir,stage:f.stage,
+        age:f.age,hunger:f.hunger,hue:f.hue,size:f.size,armor:f.armor,
+        breedCD:Math.max(0,f.breedCD),mealsEaten:f.mealsEaten,speed:f.speed,
+        turnBias:f.turnBias,depth:f.depth,route:f.route})),
+      turtle:{x:turtle.x,y:turtle.y,hunger:turtle.hunger,belly:turtle.belly,dir:turtle.dir},
+      eggs:eggs.filter(e=>e.alive).map(e=>({x:e.x,y:e.y,age:e.age,hatchIn:e.hatchIn,
+        hueA:e.hueA,hueB:e.hueB})),
+      plants:plants.map(p=>({h:p.h,health:p.health}))};
+    localStorage.setItem(SAVE_KEY,JSON.stringify(snap));
+  }catch(e){/* 隐私模式等无存储时静默跳过 */}
+}
+function loadGame(){
+  let s=null;
+  try{s=JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){}
+  if(!s||s.v!==1||!Array.isArray(s.fishes)||!s.turtle||!s.fishes.length)return false;
+  try{
+    waste=s.waste??waste;quality=s.quality??quality;oxygen=s.oxygen??oxygen;
+    filterOn=!!s.filterOn;dayTarget=s.dayTarget??1;dayness=s.dayness??dayTarget;
+    fishes=s.fishes.map(d=>{
+      const f=new Goldfish(d.hue??PALETTES[0],d.stage==="baby"?"baby":"adult");
+      Object.assign(f,{x:d.x,y:d.y,dir:d.dir??0,age:d.age??0,hunger:d.hunger??0.5,
+        size:d.size??1,armor:d.armor??0,breedCD:d.breedCD??10,mealsEaten:d.mealsEaten??0,
+        speed:d.speed??26,turnBias:d.turnBias??1,depth:d.depth??0.5,route:d.route??"cruise"});
+      f.tx=f.x;f.ty=f.y;f.alive=true;return f;
+    });
+    Object.assign(turtle,{x:s.turtle.x,y:s.turtle.y,hunger:s.turtle.hunger??0.35,
+      belly:s.turtle.belly??0,dir:s.turtle.dir??0});
+    turtle.tx=turtle.x;turtle.ty=turtle.y;
+    eggs=(s.eggs||[]).map(e=>({x:e.x,y:e.y,age:e.age??0,hatchIn:e.hatchIn??12,
+      alive:true,hueA:e.hueA,hueB:e.hueB}));
+    (s.plants||[]).forEach((sp,i)=>{if(plants[i]){
+      plants[i].h=sp.h??plants[i].h;plants[i].health=sp.health??1;}});
+    $("tFilter").classList.toggle("on",filterOn);
+    return true;
+  }catch(e){return false;}
+}
+const restored=loadGame();
+if(restored)setTimeout(()=>toast("📂 已恢复上次的鱼缸"),600);
+window.addEventListener("pagehide",saveGame);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)saveGame();});
 const actors=[];
 let last=performance.now();
 function loop(now){
   const dt=Math.min(0.05,(now-last)/1000);last=now;t+=dt;
+  saveT+=dt;if(saveT>5){saveT=0;saveGame();} // 每5秒自动存档
   updateBubbles(dt);updateFood(dt);updateEggs(dt);
   updatePlants(dt);updateEco(dt);
   turtle.update(dt);
