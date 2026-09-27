@@ -145,7 +145,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
       </div>
       <div id="alert"></div>
       <div id="toast"></div>
-      <div id="toolbar">
+      <div id="toolbar" class="hidden">
         <button id="tFeed">🍤 投食</button>
         <button id="tWater">💧 换水</button>
         <button id="tFilter">🌀 过滤</button>
@@ -153,7 +153,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
         <button id="tDay">🌗 昼夜</button>
         <button id="tMore">⚙️ 更多</button>
       </div>
-      <button id="toolToggle" aria-label="收起或展开工具栏">⌄</button>
+      <button id="toolToggle" aria-label="展开工具栏">🧰</button>
     </div>
   </div>
 </div>
@@ -457,6 +457,43 @@ function drawBubbles(){
   for(const b of bubbles){ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.stroke();}
 }
 
+/* ================= 浮游微粒 & 水面涟漪 & 暗角(纯观赏) ================= */
+const motes=Array.from({length:34},()=>({fx:Math.random(),fy:Math.random(),
+  r:rand(0.6,1.8),ph:rand(0,6.28),sp:rand(3,9)}));
+function drawMotes(){
+  const sy=surfaceY(),fy=floorY();
+  for(const m of motes){
+    const mx=(((m.fx*W+t*m.sp)%W)+W)%W;
+    const my=sy+m.fy*(fy-sy)+Math.sin(t*0.5+m.ph)*8;
+    ctx.fillStyle=`rgba(220,235,240,${0.05+0.05*(0.5+0.5*Math.sin(t*0.8+m.ph*2))})`;
+    ctx.beginPath();ctx.arc(mx,my,m.r,0,Math.PI*2);ctx.fill();
+  }
+}
+let ripples=[];
+function addRipple(x){
+  if(ripples.length>=8)return;
+  ripples.push({x:clamp(x,20,W-20),r:6,a:0.45});
+}
+function updateRipples(dt){
+  let w=0;
+  for(let i=0;i<ripples.length;i++){const r=ripples[i];
+    r.r+=42*dt;r.a-=0.30*dt;
+    if(r.a>0)ripples[w++]=r;}
+  ripples.length=w;
+}
+function drawRipples(){
+  const sy=surfaceY();
+  for(const r of ripples){
+    ctx.strokeStyle=`rgba(255,255,255,${r.a})`;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.ellipse(r.x,sy,r.r,r.r*0.26,0,0,Math.PI*2);ctx.stroke();
+  }
+}
+function drawVignette(){
+  const g=ctx.createRadialGradient(W/2,H*0.55,Math.min(W,H)*0.42,W/2,H*0.55,Math.max(W,H)*0.78);
+  g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(2,6,10,.30)");
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+
 /* ================= 食物: 下沉+摇摆, 烂掉变废物 ================= */
 let foods=[];
 function dropFood(x,y,n){
@@ -518,10 +555,11 @@ function mixHue(a,b){
   return hue;
 }
 let eggs=[];
-function layEgg(x,y,hueA,hueB){
+function layEgg(x,y,hueA,hueB,breedA,breedB){
   if(eggs.length>=MAX_EGGS)return;
   eggs.push({x:x+rand(-8,8),y:clamp(y+rand(-4,4),surfaceY()+20,floorY()-20),
-    age:0,hatchIn:rand(10,15),alive:true,hueA:hueA||PALETTES[0],hueB:hueB||PALETTES[1]});
+    age:0,hatchIn:rand(10,15),alive:true,hueA:hueA||PALETTES[0],hueB:hueB||PALETTES[1],
+    breedA:breedA||"comet",breedB:breedB||"comet"});
 }
 function updateEggs(dt){
   let w=0;
@@ -532,7 +570,8 @@ function updateEggs(dt){
     if(quality<0.25&&Math.random()<0.2*dt)continue;      // 水质太差, 卵坏死
     if(e.age>=e.hatchIn){
       if(fishes.filter(f=>f.alive).length<MAX_FISH&&quality>0.3){
-        const baby=new Goldfish(mixHue(e.hueA,e.hueB),"baby");
+        const bb=Math.random()<0.5?(e.breedA||"comet"):(e.breedB||"comet");
+        const baby=new Goldfish(mixHue(e.hueA,e.hueB),"baby",bb);
         baby.x=e.x;baby.y=e.y;fishes.push(baby);
         toast("🐣 小鱼孵化了!");blip(700,0.12,0.08);
       }
@@ -556,6 +595,13 @@ let fishes=[];
 let turtle=null;
 const adultsAlive=()=>fishes.filter(f=>f.alive&&f.stage==="adult").length;
 
+/* 三个金鱼品种: 体型/尾鳍/游速各不相同(对照片级特征: 草金单长尾、扇尾双尾、珍珠珠鳞球体) */
+const BREEDS={
+  comet:  {label:"草金", full:0.60, pow:0.72, len:1.00, tail:"single", tailLen:1.55, dorsal:1.00, eye:0.24, cruise:1.00, wigMul:1.15, wobble:0.0, pearl:false},
+  fantail:{label:"扇尾", full:0.80, pow:0.62, len:0.86, tail:"double", tailLen:1.30, dorsal:0.90, eye:0.28, cruise:0.78, wigMul:0.90, wobble:0.4, pearl:false},
+  pearl:  {label:"珍珠", full:0.98, pow:0.55, len:0.72, tail:"stub",   tailLen:0.85, dorsal:0.55, eye:0.30, cruise:0.58, wigMul:1.30, wobble:1.0, pearl:true},
+};
+
 function drawFinRays(x0,y0,tx,ty,count,color,alpha,lw){
   // 沿尾鳍画放射细线, 更像真实鳍条
   ctx.strokeStyle=color;ctx.globalAlpha=alpha;ctx.lineWidth=lw;ctx.lineCap="round";
@@ -569,17 +615,19 @@ function drawFinRays(x0,y0,tx,ty,count,color,alpha,lw){
 }
 
 class Goldfish{
-  constructor(hue,stage="adult"){
+  constructor(hue,stage="adult",breed="comet"){
+    this.breed=BREEDS[breed]?breed:"comet";
+    const B=BREEDS[this.breed];
     this.x=rand(W*0.2,W*0.8);this.y=rand(H*0.25,H*0.7);
     this.dir=rand(0,Math.PI*2);this.turnBias=rand(0.75,1.35);
-    this.speed=(stage==="baby"?rand(18,26):rand(24,34));
+    this.speed=(stage==="baby"?rand(18,26):rand(24,34))*B.cruise;
     this.size=stage==="baby"?rand(0.35,0.5):rand(0.85,1.15);
     this.stage=stage;this.age=stage==="baby"?0:rand(20,60);
     this.hunger=stage==="baby"?0.4:rand(0.35,0.6);
     this.hue=hue;this.wiggle=rand(0,10);this.swimAmp=1;
     this.tx=this.x;this.ty=this.y;this.retarget=0;this.mode="cruise";
     this.breedCD=rand(10,20);this.courtT=0;this.starveT=0;
-    this.mealsEaten=0;this.armor=0;this.bites=0;this.biteFlash=0;
+    this.armor=0;this.bites=0;this.biteFlash=0;this.dartT=0;
     this.alive=true;
     this.route=["cruise","zigzag","bottom","surface"][(Math.random()*4)|0];
     this.depth=rand(0.2,0.8);
@@ -587,7 +635,9 @@ class Goldfish{
   pickTarget(){
     const m=60;
     this.tx=rand(m,W-m);
-    if(this.route==="bottom")this.ty=rand(floorY()-70,floorY()-16);
+    if(isNight()&&Math.random()<0.7)      // 夜里金鱼多半沉底休息
+      this.ty=rand(floorY()-70,floorY()-18);
+    else if(this.route==="bottom")this.ty=rand(floorY()-70,floorY()-16);
     else if(this.route==="surface")this.ty=rand(surfaceY()+26,surfaceY()+H*0.22);
     else if(this.route==="zigzag")this.ty=clamp(H*this.depth+Math.sin(t*2+this.wiggle)*H*0.15,surfaceY()+26,floorY()-16);
     else this.ty=rand(surfaceY()+26,floorY()-16);
@@ -626,7 +676,7 @@ class Goldfish{
         const p=plants[(Math.random()*plants.length)|0];
         const lx=W*p.xFrac+rand(-15,15),ly=floorY()-H*p.h*0.35;
         const n=turtle&&turtle.peaceful?2+(Math.random()<0.5?1:0):1+(Math.random()<0.4?1:0);
-        for(let i=0;i<n;i++)layEgg(lx,ly,this.hue,partner.hue);
+        for(let i=0;i<n;i++)layEgg(lx,ly,this.hue,partner.hue,this.breed,partner.breed);
         this.breedCD=rand(25,40);partner.breedCD=rand(25,40);this.courtT=0;
         toast("💕 金鱼产卵了!");blip(520,0.15,0.09);
       }
@@ -681,12 +731,19 @@ class Goldfish{
           this.mode="forage";this.tx=best.x;this.ty=best.y;
           if(bd<(adult?9:7)){
             best.eaten=true;this.hunger=Math.min(1,this.hunger+0.38);
-            if(adult){this.mealsEaten++;this.armor=Math.min(1,this.armor+0.15);}
+            if(adult)this.armor=Math.min(1,this.armor+0.15);
           }
         }else if(this.retarget<=0){this.mode="cruise";this.pickTarget();}
       }else if(this.retarget<=0){this.mode="cruise";this.pickTarget();}
     }
     this.tryBreed(dt);
+
+    // 草金吃饱后偶尔嬉戏冲刺(品种习性)
+    if(this.breed==="comet"&&this.mode==="cruise"&&this.dartT<=0&&this.hunger>0.5&&Math.random()<dt*0.12){
+      this.dartT=1.1;
+      this.tx=clamp(this.x+Math.cos(this.dir)*rand(120,200),30,W-30);
+      this.ty=clamp(this.y+rand(-60,60),surfaceY()+26,floorY()-16);
+    }
 
     // —— 移动 ——
     const dx=this.tx-this.x,dy=this.ty-this.y,dist=Math.hypot(dx,dy)||1;
@@ -695,19 +752,35 @@ class Goldfish{
     while(diff>Math.PI)diff-=Math.PI*2;
     while(diff<-Math.PI)diff+=Math.PI*2;
     this.dir+=diff*Math.min(1,dt*(this.mode==="flee"?5.0:2.4)*this.turnBias);
+    // 群游: 巡游时轻微跟随邻居方向(金鱼是社会性鱼类)
+    if(this.mode==="cruise"){
+      let ax=0,ay=0,nn=0;
+      for(const o of fishes){
+        if(o===this||!o.alive)continue;
+        if(Math.hypot(o.x-this.x,o.y-this.y)<130){ax+=Math.cos(o.dir);ay+=Math.sin(o.dir);nn++;}
+      }
+      if(nn>0){
+        let dd=Math.atan2(ay/nn,ax/nn)-this.dir;
+        while(dd>Math.PI)dd-=Math.PI*2;while(dd<-Math.PI)dd+=Math.PI*2;
+        this.dir+=dd*Math.min(1,dt*0.9);
+      }
+    }
     let sp=this.speed*(this.mode==="flee"?1.9:this.mode==="forage"?1.25:this.mode==="court"?0.9:0.8);
     if(quality<0.3)sp*=0.75;
     if(oxygen<0.25)sp*=0.7;
     if(this.hunger<0.2)sp*=0.7;
+    if(isNight())sp*=0.45;                    // 夜里活动量下降、沉底休息
+    if(this.dartT>0){this.dartT-=dt;sp*=2.1;}  // 嬉戏冲刺
     const step=Math.min(sp*dt,dist);
     this.x=clamp(this.x+Math.cos(this.dir)*step,22,W-22);
     this.y=clamp(this.y+Math.sin(this.dir)*step,surfaceY()+16,floorY()-10);
     const tAmp=this.mode==="flee"?1.35:this.mode==="forage"?1.1:1;
     this.swimAmp+=(tAmp-this.swimAmp)*Math.min(1,dt*4);
-    this.wiggle+=dt*((this.mode==="flee"?13:this.mode==="forage"?10:6.5)+sp*0.1)*this.swimAmp;
+    this.wiggle+=dt*((this.mode==="flee"?13:this.mode==="forage"?10:6.5)+sp*0.1)*this.swimAmp*(BREEDS[this.breed]||BREEDS.comet).wigMul;
   }
   draw(){
     if(!this.alive)return;
+    const B=BREEDS[this.breed]||BREEDS.comet;
     const s=16*this.size,w=this.wiggle;
     const fleeing=this.mode==="flee";
     const stress=this.stressLevel();
@@ -718,20 +791,21 @@ class Goldfish{
     // 水底投影: 离底越近越深
     const hFrac=clamp((floorY()-this.y)/(floorY()-surfaceY()),0,1);
     ctx.fillStyle=`rgba(0,0,0,${0.22*(1-hFrac*0.75)})`;
-    ctx.beginPath();ctx.ellipse(this.x,floorY()+7,s*1.5,s*0.42,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(this.x,floorY()+7,s*1.5*B.len,s*0.42,0,0,Math.PI*2);ctx.fill();
 
     // —— 身体中线行波: 头→尾摆动幅度递增, 像真鱼一样 --
     const N=12,spine=[],ampB=(fleeing?0.34:0.20)*this.swimAmp;
     for(let i=0;i<=N;i++){
-      const u=i/N,fx=(0.95-1.8*u)*s;
+      const u=i/N,fx=(0.95-1.8*u)*s*B.len;
       spine.push({x:fx,y:Math.sin(w-i*0.62)*ampB*s*(0.15+0.85*u)});
     }
-    const widthAt=u=>s*0.60*Math.sin(Math.PI*Math.pow(u,0.72));
+    // 品种体型: 草金纺锤 / 扇尾蛋形 / 珍珠球形
+    const widthAt=u=>s*B.full*Math.sin(Math.PI*Math.pow(u,B.pow));
 
     ctx.save();
     ctx.translate(this.x,this.y+Math.sin(w*0.7)*(fleeing?1.2:0.6));
     ctx.scale(Math.cos(this.dir)<0?-1:1,1);
-    ctx.rotate(Math.sin(this.dir)*0.05);
+    ctx.rotate(Math.sin(this.dir)*0.05+Math.sin(w*0.8)*0.05*B.wobble);
 
     // 身体
     ctx.beginPath();
@@ -756,8 +830,19 @@ class Goldfish{
     // 鳞片弧线
     ctx.strokeStyle="rgba(255,255,255,.16)";ctx.lineWidth=Math.max(0.5,s*0.02);
     for(let gx=-0.5;gx<=0.6;gx+=0.28){
-      ctx.beginPath();ctx.moveTo(s*gx,-s*0.6);
-      ctx.quadraticCurveTo(s*(gx+0.08),0,s*gx,s*0.6);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(s*gx*B.len,-s*0.6);
+      ctx.quadraticCurveTo(s*(gx+0.08)*B.len,0,s*gx*B.len,s*0.6);ctx.stroke();
+    }
+    // 珍珠: 标志性隆起珠鳞(每片鳞片中央鼓起、带高光)
+    if(B.pearl){
+      for(let r=-2;r<=2;r++)for(let c=-2;c<=2;c++){
+        const px=c*s*0.26*B.len, py=r*s*0.20+((c%2)?s*0.05:0);
+        if(Math.hypot(px/(s*0.95*B.len),py/(s*0.62))>1)continue;
+        ctx.fillStyle="rgba(255,250,235,.30)";
+        ctx.beginPath();ctx.arc(px,py,s*0.085,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="rgba(255,255,255,.55)";
+        ctx.beginPath();ctx.arc(px-s*0.02,py-s*0.028,s*0.032,0,Math.PI*2);ctx.fill();
+      }
     }
     // 铠甲微光(吃饱的成年鱼, 防乌龟)
     if(this.armor>0.15&&this.stage==="adult"){
@@ -773,55 +858,60 @@ class Goldfish{
     }
     ctx.restore();
 
-    // —— 尾鳍: 跟随脊柱末端方向 + 摆动 --
+    // —— 尾鳍: 跟随脊柱末端方向 + 摆动; 草金单叉长尾 / 扇尾双尾四叶 / 珍珠短圆双尾 --
     const tb=spine[N],pb=spine[N-1];
     const segA=Math.atan2(tb.y-pb.y,tb.x-pb.x);
     const wagA=segA+Math.sin(w*1.0)*0.4*(fleeing?1.3:1);
-    const tl=s*1.55;
-    const tipX=tb.x+Math.cos(wagA)*tl,tipY=tb.y+Math.sin(wagA)*tl;
-    const tg=ctx.createLinearGradient(tb.x,tb.y,tipX,tipY);
-    tg.addColorStop(0,colL);tg.addColorStop(1,colD);
-    ctx.fillStyle=tg;ctx.globalAlpha=0.94;
-    for(const lobe of [-1,1]){ // 上下两叶
-      const off=lobe*s*0.42;
+    const tl=s*B.tailLen;
+    const lobes=B.tail==="double"
+      ?[{o:-0.52,l:0.88},{o:-0.18,l:1.0},{o:0.18,l:1.0},{o:0.52,l:0.88}]
+      :[{o:-0.42,l:1.0},{o:0.42,l:1.0}];
+    for(const lb of lobes){
+      const la=wagA+lb.o,llen=tl*lb.l;
+      const tipX=tb.x+Math.cos(la)*llen,tipY=tb.y+Math.sin(la)*llen;
+      const off=Math.sign(lb.o)*s*(0.12+0.55*Math.abs(lb.o));
+      const tg=ctx.createLinearGradient(tb.x,tb.y,tipX,tipY);
+      tg.addColorStop(0,colL);tg.addColorStop(1,colD);
+      ctx.fillStyle=tg;ctx.globalAlpha=0.94;
       ctx.beginPath();ctx.moveTo(tb.x,tb.y);
       ctx.quadraticCurveTo(
-        tb.x+Math.cos(wagA-0.45*lobe)*tl*0.55,
-        tb.y+Math.sin(wagA-0.45*lobe)*tl*0.55+off*0.4,
+        tb.x+Math.cos(la-0.45*Math.sign(lb.o))*llen*0.55,
+        tb.y+Math.sin(la-0.45*Math.sign(lb.o))*llen*0.55+off*0.4,
         tipX,tipY+off);
       ctx.quadraticCurveTo(
-        tb.x+Math.cos(wagA)*tl*0.45,
-        tb.y+Math.sin(wagA)*tl*0.45+off*0.2,
+        tb.x+Math.cos(la)*llen*0.45,
+        tb.y+Math.sin(la)*llen*0.45+off*0.2,
         tb.x,tb.y);
       ctx.fill();
     }
     ctx.globalAlpha=1;
-    drawFinRays(tb.x,tb.y,tipX,tipY-s*0.4,7,colD,0.4,Math.max(0.6,s*0.028));
-    drawFinRays(tb.x,tb.y,tipX,tipY+s*0.4,7,colD,0.4,Math.max(0.6,s*0.028));
+    drawFinRays(tb.x,tb.y,tb.x+Math.cos(wagA)*tl,tb.y+Math.sin(wagA)*tl-s*0.4,7,colD,0.4,Math.max(0.6,s*0.028));
+    drawFinRays(tb.x,tb.y,tb.x+Math.cos(wagA)*tl,tb.y+Math.sin(wagA)*tl+s*0.4,7,colD,0.4,Math.max(0.6,s*0.028));
 
-    // 背鳍
+    // 背鳍(珍珠背鳍短小)
     const du=0.42,di=Math.round(du*N);
     const dpx=spine[di].x,dpy=spine[di].y-widthAt(du);
+    const dh=B.dorsal;
     ctx.fillStyle=colL;ctx.beginPath();
-    ctx.moveTo(dpx-s*0.28,dpy+s*0.06);
-    ctx.quadraticCurveTo(dpx+s*0.02,dpy-s*1.05+Math.sin(w*1.3)*s*0.1,dpx+s*0.34,dpy+s*0.02);
-    ctx.quadraticCurveTo(dpx+s*0.02,dpy-s*0.1,dpx-s*0.28,dpy+s*0.06);
+    ctx.moveTo(dpx-s*0.28*dh,dpy+s*0.06);
+    ctx.quadraticCurveTo(dpx+s*0.02,dpy-s*1.05*dh+Math.sin(w*1.3)*s*0.1,dpx+s*0.34*dh,dpy+s*0.02);
+    ctx.quadraticCurveTo(dpx+s*0.02,dpy-s*0.1,dpx-s*0.28*dh,dpy+s*0.06);
     ctx.fill();
 
-    // 胸鳍(扑动)
-    const flap=Math.sin(w*2.4)*0.5;
+    // 胸鳍(扑动; 珍珠鳍短)
+    const flap=Math.sin(w*2.4)*0.5, finS=B.tail==="stub"?0.7:1;
     for(const side of [-1,1]){
       ctx.save();
-      ctx.translate(s*0.12,side*s*0.3);ctx.rotate(side*(0.85+flap*0.5));
+      ctx.translate(s*0.12*B.len,side*s*0.3);ctx.rotate(side*(0.85+flap*0.5));
       ctx.fillStyle=colL;ctx.globalAlpha=0.85;
-      ctx.beginPath();ctx.ellipse(s*0.2,0,s*0.36,s*0.13,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(s*0.2,0,s*0.36*finS,s*0.13*finS,0,0,Math.PI*2);ctx.fill();
       ctx.restore();
     }
     ctx.globalAlpha=1;
 
-    // 眼睛
+    // 眼睛(品种眼径不同)
     for(const side of [-1,1]){
-      const ex=s*0.58,ey=side*s*0.30,er=s*(this.stage==="baby"?0.17:0.27);
+      const ex=s*0.58*B.len,ey=side*s*0.30,er=s*B.eye*(this.stage==="baby"?0.72:1);
       ctx.fillStyle=sick?"#f0e8d0":"#fff8ec";
       ctx.beginPath();ctx.arc(ex,ey,er,0,Math.PI*2);ctx.fill();
       ctx.fillStyle="#191410";
@@ -879,6 +969,14 @@ class Turtle{
     this.baskTimer=rand(22,30);
     this.frenzy=false;this.frenzyTimer=0;
     this.peaceful=false;
+    // 呼吸: 巴西龟用肺呼吸, 必须定时上浮换气
+    this.breath=1;this.breathWarned=false;
+    // 睡眠: 夜晚沉底睡觉(日行性)
+    this.sleepX=0;this.sleepY=0;this._ps="swim";
+  }
+  pickSleepSpot(){
+    this.sleepX=rand(W*0.15,W*0.85);this.sleepY=floorY()-12;
+    this.tx=this.sleepX;this.ty=this.sleepY;
   }
   findPrey(){
     let bt=null,bd=Infinity,kind=null;
@@ -931,15 +1029,33 @@ class Turtle{
   }
   update(dt){
     if(this.eatTimer>0)this.eatTimer-=dt;
+    const night=isNight();
     if(this.frenzy){
       this.frenzyTimer-=dt;
-      if(this.frenzyTimer<=0){this.frenzy=false;toast("🦖 乌龟冷静下来了");}
+      if(this.frenzyTimer<=0){this.frenzy=false;
+        if(night){this.state="sleep";this.pickSleepSpot();}
+        toast("🦖 乌龟冷静下来了");}
     }
     this.hunger=clamp(this.hunger+dt*0.01,0,1);      // 约100秒从饱到饿
-    this.peaceful=(this.state==="bask"||this.state==="surface")&&!this.frenzy;
+    // —— 呼吸: 水下持续耗气(约50秒), 睡眠时极慢; 水面/晒背快速回气 ——
+    const under=this.state!=="surface"&&this.state!=="bask";
+    if(under)this.breath=Math.max(0,this.breath-dt*(this.state==="sleep"?0.004:0.02));
+    else this.breath=Math.min(1,this.breath+dt*0.6);
+    if(this.breath<0.25&&under){                       // 憋不住了: 紧急上浮换气
+      this.state="surface";this.stateTimer=3;
+      if(!this.breathWarned){this.breathWarned=true;toast("🐢 乌龟上浮换气");}
+    }else if(this.breath>0.9)this.breathWarned=false;
+    // —— 日行性: 白天活动, 夜晚沉底睡觉(睡觉时不捕猎=和平) ——
+    if(night&&!this.frenzy&&(this.state==="swim"||this.state==="hunt")){
+      this.state="sleep";this.pickSleepSpot();
+    }
+    if(!night&&this.state==="sleep")this.state="surface"; // 天亮: 上浮换气再晒背
+    this.peaceful=(this.state==="bask"||this.state==="surface"||this.state==="sleep")&&!this.frenzy;
     if(this.frenzy&&this.state!=="hunt")this.state="hunt";
 
-    if(this.state==="swim"){
+    if(this.state==="sleep"){
+      this.tx=this.sleepX;this.ty=this.sleepY;          // 趴底睡觉, 几乎不动
+    }else if(this.state==="swim"){
       if(!this.frenzy&&this.hunger>0.55)this.state="hunt";
       else{
         this.baskTimer-=dt;
@@ -964,9 +1080,10 @@ class Turtle{
         if(this.baskTimer<=0)this.state="surface";
       }
     }else if(this.state==="surface"){
-      this.tx=W*0.84;this.ty=surfaceY()-4;            // 爬上晒台
+      this.tx=W*0.84;this.ty=surfaceY()-4;            // 浮出水面换气
       if(Math.hypot(this.tx-this.x,this.ty-this.y)<12){
-        this.state="bask";this.stateTimer=rand(7,12);
+        if(isNight()){this.state="sleep";this.pickSleepSpot();} // 夜里换完气回去睡
+        else{this.state="bask";this.stateTimer=rand(7,12);}     // 白天爬上晒台
       }
     }else if(this.state==="bask"){
       this.tx=this.x;this.ty=this.y;
@@ -987,7 +1104,8 @@ class Turtle{
     this.pitch+=(clamp(vy*0.004,-0.5,0.5)-this.pitch)*kk;
     this.roll+=(clamp(-tr/Math.max(dt,1e-4)*0.05,-0.35,0.35)-this.roll)*kk;
     let pSpeed=0,pAmp=0.6;
-    if(this.state==="hunt"){pSpeed=12;pAmp=0.95;}          // 捕猎: 大力划水
+    if(this.state==="sleep"){pSpeed=0.6;pAmp=0.05;}        // 睡眠: 几乎不动
+    else if(this.state==="hunt"){pSpeed=12;pAmp=0.95;}     // 捕猎: 大力划水
     else if(this.state==="swim"){
       if(this.glideT>0){this.glideT-=dt;pSpeed=1.4;pAmp=0.12;} // 滑行: 收蹼
       else{pSpeed=5.5;pAmp=0.6;this.glideCD-=dt;
@@ -999,7 +1117,7 @@ class Turtle{
     this.headYawT-=dt;
     if(this.headYawT<=0){this.headYawT=rand(2.5,6);this.headYawTarget=rand(-0.55,0.55);}
     this.headYaw+=(this.headYawTarget-this.headYaw)*Math.min(1,dt*3);
-    const hp=this.state==="bask"?-0.5:this.state==="surface"?-0.3:this.state==="hunt"?0.18:0;
+    const hp=this.state==="bask"?-0.5:this.state==="surface"?-0.3:this.state==="sleep"?0.15:this.state==="hunt"?0.18:0;
     this.headPitch+=(hp-this.headPitch)*Math.min(1,dt*3);
     this.blinkT-=dt;if(this.blinkT<=0){this.blink=0.14;this.blinkT=rand(2,5);}
     if(this.blink>0)this.blink-=dt;
@@ -1015,6 +1133,7 @@ class Turtle{
       let mul=1;
       if(hunting)mul=this.frenzy?3.4:2.4;
       else if(this.eatTimer>0)mul=0.35;
+      else if(this.state==="sleep")mul=0.12;   // 睡眠挪窝极慢
       else if(this.hunger<0.25)mul=0.6;
       if(this.glideT>0&&this.state==="swim")mul=1.35; // 滑行借惯性
       const step=Math.min(this.speed*mul*dt,dist);
@@ -1022,10 +1141,13 @@ class Turtle{
       this.x=clamp(this.x+Math.cos(this.dir)*step,26,W-26);
       this.y=clamp(this.y+Math.sin(this.dir)*step,minY,floorY()-8);
     }
+    // 刚浮出水面: 泛一圈涟漪
+    if(this.state==="surface"&&this._ps!=="surface")addRipple(this.x);
+    this._ps=this.state;
   }
-  // 蹼足: 短壮写实版
-  flipper(bx,by,sd,ang,lenScale,skin,stripe){
-    const len=10*lenScale,wid=4;
+  // 蹼足: 短壮写实版; 前足爪较长(巴西龟公龟特征)
+  flipper(bx,by,sd,ang,lenScale,skin,stripe,clawS){
+    const len=10*lenScale,wid=4,claw=clawS||1;
     ctx.save();ctx.translate(bx,by);ctx.rotate(ang);
     ctx.fillStyle=sd<0?"rgba(66,72,48,.94)":skin;
     ctx.beginPath();
@@ -1035,13 +1157,13 @@ class Turtle{
     ctx.closePath();ctx.fill();
     ctx.strokeStyle=stripe;ctx.lineWidth=0.8; // 细黄纹
     ctx.beginPath();ctx.moveTo(len*0.15,0);ctx.lineTo(len*0.8,0);ctx.stroke();
-    for(let c=-2;c<=2;c++){ // 小蹼趾 + 短爪
+    for(let c=-2;c<=2;c++){ // 小蹼趾 + 爪
       ctx.save();ctx.translate(len*0.82,0);ctx.rotate(c*0.20);
       ctx.fillStyle=sd<0?"rgba(60,66,44,.95)":"#454e30";
       ctx.beginPath();ctx.moveTo(0,-1.8);ctx.lineTo(5.5,0);ctx.lineTo(0,1.8);
       ctx.closePath();ctx.fill();
       ctx.fillStyle="#c9c29a";
-      ctx.beginPath();ctx.moveTo(5,-0.8);ctx.lineTo(7.6,0);ctx.lineTo(5,0.8);
+      ctx.beginPath();ctx.moveTo(5,-0.8);ctx.lineTo(5+2.6*claw,0);ctx.lineTo(5,0.8);
       ctx.closePath();ctx.fill();
       ctx.restore();
     }
@@ -1070,7 +1192,7 @@ class Turtle{
     for(const sd of [-1,1]){
       const base=basking?1.15:gliding?2.45:2.15;
       const row=(basking||gliding)?0:Math.sin(this.paddlePhase*0.8+(sd<0?0:Math.PI))*0.30*amp;
-      this.flipper(-s*0.42,sd*s*0.42,sd,sd*base+row,basking?1.0:gliding?0.6:0.9,skin,stripe);
+      this.flipper(-s*0.42,sd*s*0.42,sd,sd*base+row,basking?1.0:gliding?0.6:0.9,skin,stripe,1.0);
     }
 
     // —— 背甲: 暗橄榄, 纹路淡 ——
@@ -1092,6 +1214,17 @@ class Turtle{
       ctx.beginPath();ctx.ellipse(cx,cy,rw*0.36,rh*0.36,rot,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle="rgba(185,170,100,.25)";ctx.lineWidth=0.7; // 生长纹
       ctx.beginPath();ctx.ellipse(cx,cy,rw*0.62,rh*0.62,rot,0,Math.PI*2);ctx.stroke();
+      // 黄色虫纹: 巴西龟背甲标志性波浪纹
+      ctx.strokeStyle="rgba(216,188,112,.50)";ctx.lineWidth=0.8;
+      for(let wl=0;wl<2;wl++){
+        ctx.beginPath();
+        for(let k=0;k<=6;k++){
+          const wx=cx-rw*0.7+k*(rw*1.4/6);
+          const wy=cy-rh*0.3+wl*rh*0.5+Math.sin(k*1.7+rot*9+wl*2)*rh*0.22;
+          k===0?ctx.moveTo(wx,wy):ctx.lineTo(wx,wy);
+        }
+        ctx.stroke();
+      }
     };
     [-0.62,-0.34,-0.05,0.24,0.50].forEach((fx2,i)=>scute(s*fx2,0,s*0.20,s*0.20,i*0.06));
     for(const sd of [-1,1])
@@ -1099,6 +1232,13 @@ class Turtle{
     ctx.fillStyle="rgba(255,255,225,.06)"; // 微弱顶光
     ctx.beginPath();ctx.ellipse(-s*0.1,-s*0.2,s*0.55,s*0.22,0,0,Math.PI*2);ctx.fill();
     ctx.restore();
+    ctx.strokeStyle="rgba(206,178,116,.55)";ctx.lineWidth=3; // 缘盾淡黄边
+    ctx.beginPath();ctx.ellipse(0,0,s*0.985,s*0.505,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle="rgba(25,30,16,.5)"; // 缘盾暗斑
+    for(let k=0;k<7;k++){
+      const a2=Math.PI*(0.08+k*0.145);
+      ctx.beginPath();ctx.ellipse(Math.cos(a2)*s*0.97,Math.sin(a2)*s*0.50,3.2,1.8,a2,0,Math.PI*2);ctx.fill();
+    }
     ctx.fillStyle="#333f22"; // 后缘轻微锯齿
     for(let i=0;i<6;i++){
       const a2=Math.PI*(0.62+i*0.15);
@@ -1113,7 +1253,7 @@ class Turtle{
     for(const sd of [-1,1]){
       const base=basking?0.95:surfing?-0.45:gliding?2.60:0.80;
       const row=(basking||surfing||gliding)?0:Math.sin(this.paddlePhase+(sd<0?Math.PI:0))*0.55*amp;
-      this.flipper(s*0.48,sd*s*0.38,sd,sd*base+row,basking?1.05:gliding?0.6:0.95,skin,stripe);
+      this.flipper(s*0.48,sd*s*0.38,sd,sd*base+row,basking?1.05:gliding?0.6:0.95,skin,stripe,1.45);
     }
 
     // —— 颈 + 小头 ——
@@ -1129,10 +1269,10 @@ class Turtle{
     ctx.lineTo(s*0.36,lift+7);
     ctx.quadraticCurveTo(s*0.20,1+lift*0.4,-3,5);
     ctx.closePath();ctx.fill();
-    ctx.strokeStyle=stripe;ctx.lineWidth=0.9; // 颈细纹
-    for(let k=0;k<2;k++){
-      ctx.beginPath();ctx.moveTo(-1,-3+k*5);
-      ctx.quadraticCurveTo(s*0.20,-3+k*5+lift*0.35,s*0.34,lift-1+k*5);ctx.stroke();
+    ctx.strokeStyle="rgba(210,195,115,.60)";ctx.lineWidth=1; // 颈部黄纹(多条)
+    for(let k=0;k<4;k++){
+      ctx.beginPath();ctx.moveTo(-2,-4.5+k*3);
+      ctx.quadraticCurveTo(s*0.20,-4.5+k*3+lift*0.35,s*0.34,lift-2.5+k*3);ctx.stroke();
     }
     ctx.fillStyle="rgba(40,48,28,.5)"; // 颈斑点
     for(let k=0;k<4;k++){
@@ -1143,20 +1283,27 @@ class Turtle{
     ctx.rotate(this.headYaw*0.3);
     ctx.fillStyle="#56603c"; // 小头
     ctx.beginPath();ctx.ellipse(5,0,7.5,5,0,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle=stripe;ctx.lineWidth=0.8;
-    ctx.beginPath();ctx.moveTo(-1,-3);ctx.quadraticCurveTo(4,-3.6,9,-1.6);ctx.stroke();
-    ctx.fillStyle="#a83a26"; // 红耳斑: 细长一 streak
-    ctx.beginPath();ctx.ellipse(1.5,-4.4,3.6,1.5,0.25,0,Math.PI*2);ctx.fill();
-    const eyeX=5.5,eyeY=-1.2; // 小而暗的眼
-    if(this.blink>0){
+    ctx.strokeStyle="rgba(220,200,120,.75)";ctx.lineWidth=1; // 头部黄纹
+    for(let k=0;k<3;k++){
+      ctx.beginPath();ctx.moveTo(-2,-3.5+k*2.4);
+      ctx.quadraticCurveTo(4,-4+k*2.4,10.5,-1.8+k*2.2);ctx.stroke();
+    }
+    ctx.fillStyle="#c93a1c"; // 红耳斑: 巴西龟标志, 眼后粗长一 streak
+    ctx.beginPath();ctx.ellipse(0.5,-4.6,6.2,2.4,0.18,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#e05a28";
+    ctx.beginPath();ctx.ellipse(0.5,-4.9,4.6,1.4,0.18,0,Math.PI*2);ctx.fill();
+    const eyeX=5.5,eyeY=-1.2; // 黄绿虹膜的小眼
+    if(this.blink>0||this.state==="sleep"){
       ctx.strokeStyle="#333d28";ctx.lineWidth=1.2;
       ctx.beginPath();ctx.moveTo(eyeX-2.2,eyeY);ctx.lineTo(eyeX+2.2,eyeY);ctx.stroke();
     }else{
       const hh=basking?0.5:1;
-      ctx.fillStyle="#1a2012";
-      ctx.beginPath();ctx.ellipse(eyeX,eyeY,1.9,1.9*hh,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="rgba(255,255,255,.7)";
-      ctx.beginPath();ctx.arc(eyeX+0.7,eyeY-0.6,0.55,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#a8a05a";
+      ctx.beginPath();ctx.ellipse(eyeX,eyeY,2.0,2.0*hh,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#141a0e";
+      ctx.beginPath();ctx.ellipse(eyeX+0.3,eyeY,1.05,1.05*hh,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.75)";
+      ctx.beginPath();ctx.arc(eyeX+0.9,eyeY-0.7,0.5,0,Math.PI*2);ctx.fill();
     }
     ctx.fillStyle="#3d452c"; // 吻端
     ctx.beginPath();ctx.ellipse(10.5,2.2,3,2,0.15,0,Math.PI*2);ctx.fill();
@@ -1214,7 +1361,7 @@ dashPill.onclick=e=>{e.stopPropagation();dashEl.classList.toggle("open");};
 
 /* —— 底部工具栏收起/展开(横竖屏统一) —— */
 const toolbar=$("toolbar"),toolToggle=$("toolToggle");
-let toolsHidden=false;
+let toolsHidden=true;   // 默认收起: 平时只留右下角 🧰, 点开才用工具
 function setTools(hidden){
   toolsHidden=hidden;
   toolbar.classList.toggle("hidden",hidden);
@@ -1222,6 +1369,7 @@ function setTools(hidden){
   toolToggle.setAttribute("aria-label",hidden?"展开工具栏":"收起工具栏");
 }
 toolToggle.onclick=e=>{e.stopPropagation();setTools(!toolsHidden);};
+setTools(true); // 默认收起(与 HTML 初始 class 一致, 双保险)
 const barColor=v=>v>0.55?"#3dcc7a":v>0.3?"#d4a017":"#d4452f";
 function advice(){
   const tips=[];
@@ -1287,7 +1435,9 @@ function updateEco(dt){
 
 /* ================= 操作 ================= */
 function feedAction(x){
-  dropFood(x==null?rand(W*0.3,W*0.7):x,surfaceY()+8,3);
+  const fx=x==null?rand(W*0.3,W*0.7):x;
+  dropFood(fx,surfaceY()+8,3);
+  addRipple(fx);
   blip(620,0.1,0.08);
 }
 function waterAction(){
@@ -1304,11 +1454,12 @@ function addFishAction(){
   if(fishes.filter(f=>f.alive).length>=MAX_FISH){toast("🐟 鱼缸满了!");blip(180,0.15,0.08);return;}
   const hue=Object.assign({},PALETTES[(Math.random()*PALETTES.length)|0]);
   if(!hue.patch&&Math.random()<0.5)hue.patch="rgba(255,255,255,.5)";
-  const g=new Goldfish(hue,"adult");
+  const breeds=["comet","fantail","pearl"],b=breeds[(Math.random()*3)|0];
+  const g=new Goldfish(hue,"adult",b);
   g.size=rand(1.0,1.2);g.hunger=0.55;
   g.x=rand(W*0.25,W*0.75);g.y=rand(surfaceY()+30,floorY()-30);
   fishes.push(g);
-  toast("🐟 新金鱼入缸!");blip(640,0.12,0.09);
+  toast("🐟 新"+BREEDS[b].label+"入缸!");blip(640,0.12,0.09);
 }
 function dayAction(){
   dayTarget=dayTarget>0.5?0:1;
@@ -1387,7 +1538,10 @@ document.addEventListener("contextmenu",e=>e.preventDefault());
 })();
 
 /* ================= 初始化 & 主循环 ================= */
-fishes=PALETTES.slice(0,3).map(p=>new Goldfish(p,"adult"));
+// 开缸三条: 草金 / 扇尾 / 珍珠, 各一条
+fishes=[new Goldfish(PALETTES[0],"adult","comet"),
+        new Goldfish(PALETTES[1],"adult","fantail"),
+        new Goldfish(PALETTES[2],"adult","pearl")];
 turtle=new Turtle();
 
 /* ================= 自动存档(localStorage) ================= */
@@ -1398,12 +1552,12 @@ function saveGame(){
     const snap={v:1,
       waste,quality,oxygen,filterOn,dayTarget,dayness,
       fishes:fishes.filter(f=>f.alive).map(f=>({x:f.x,y:f.y,dir:f.dir,stage:f.stage,
-        age:f.age,hunger:f.hunger,hue:f.hue,size:f.size,armor:f.armor,
-        breedCD:Math.max(0,f.breedCD),mealsEaten:f.mealsEaten,speed:f.speed,
+        age:f.age,hunger:f.hunger,hue:f.hue,size:f.size,armor:f.armor,breed:f.breed,
+        breedCD:Math.max(0,f.breedCD),speed:f.speed,
         turnBias:f.turnBias,depth:f.depth,route:f.route})),
       turtle:{x:turtle.x,y:turtle.y,hunger:turtle.hunger,belly:turtle.belly,dir:turtle.dir},
       eggs:eggs.filter(e=>e.alive).map(e=>({x:e.x,y:e.y,age:e.age,hatchIn:e.hatchIn,
-        hueA:e.hueA,hueB:e.hueB})),
+        hueA:e.hueA,hueB:e.hueB,breedA:e.breedA,breedB:e.breedB})),
       plants:plants.map(p=>({h:p.h,health:p.health}))};
     localStorage.setItem(SAVE_KEY,JSON.stringify(snap));
   }catch(e){/* 隐私模式等无存储时静默跳过 */}
@@ -1416,9 +1570,9 @@ function loadGame(){
     waste=s.waste??waste;quality=s.quality??quality;oxygen=s.oxygen??oxygen;
     filterOn=!!s.filterOn;dayTarget=s.dayTarget??1;dayness=s.dayness??dayTarget;
     fishes=s.fishes.map(d=>{
-      const f=new Goldfish(d.hue??PALETTES[0],d.stage==="baby"?"baby":"adult");
+      const f=new Goldfish(d.hue??PALETTES[0],d.stage==="baby"?"baby":"adult",d.breed||"comet");
       Object.assign(f,{x:d.x,y:d.y,dir:d.dir??0,age:d.age??0,hunger:d.hunger??0.5,
-        size:d.size??1,armor:d.armor??0,breedCD:d.breedCD??10,mealsEaten:d.mealsEaten??0,
+        size:d.size??1,armor:d.armor??0,breedCD:d.breedCD??10,
         speed:d.speed??26,turnBias:d.turnBias??1,depth:d.depth??0.5,route:d.route??"cruise"});
       f.tx=f.x;f.ty=f.y;f.alive=true;return f;
     });
@@ -1426,7 +1580,7 @@ function loadGame(){
       belly:s.turtle.belly??0,dir:s.turtle.dir??0});
     turtle.tx=turtle.x;turtle.ty=turtle.y;
     eggs=(s.eggs||[]).map(e=>({x:e.x,y:e.y,age:e.age??0,hatchIn:e.hatchIn??12,
-      alive:true,hueA:e.hueA,hueB:e.hueB}));
+      alive:true,hueA:e.hueA,hueB:e.hueB,breedA:e.breedA||"comet",breedB:e.breedB||"comet"}));
     (s.plants||[]).forEach((sp,i)=>{if(plants[i]){
       plants[i].h=sp.h??plants[i].h;plants[i].health=sp.health??1;}});
     $("tFilter").classList.toggle("on",filterOn);
@@ -1442,7 +1596,7 @@ let last=performance.now();
 function loop(now){
   const dt=Math.min(0.05,(now-last)/1000);last=now;t+=dt;
   saveT+=dt;if(saveT>5){saveT=0;saveGame();} // 每5秒自动存档
-  updateBubbles(dt);updateFood(dt);updateEggs(dt);
+  updateBubbles(dt);updateFood(dt);updateEggs(dt);updateRipples(dt);
   updatePlants(dt);updateEco(dt);
   turtle.update(dt);
   for(const f of fishes)f.update(dt);
@@ -1451,11 +1605,12 @@ function loop(now){
   drawWater();
   ctx.drawImage(staticCanvas,0,0,W,H);
   drawCaustics();
-  drawPlants();drawEggs();drawBubbles();drawFood();
+  drawPlants();drawMotes();drawEggs();drawBubbles();drawRipples();drawFood();
   actors.length=0;actors.push(turtle);
   for(const f of fishes)actors.push(f);
   actors.sort((a,b)=>a.y-b.y);
   for(const a of actors)a.draw();
+  drawVignette();
   updateHUD(dt);
   requestAnimationFrame(loop);
 }
