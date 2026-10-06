@@ -800,7 +800,9 @@ function updateFish(f,dt,t){
     if(best){
       const realD=best.position.distanceTo(P);
       f.mode='forage';f.target.copy(best.position);
-      f._rush=realD<3?(1.2+ (1-f.hunger)*0.6):1.05;
+      let rush=realD<3?(1.2+(1-f.hunger)*0.6):1.05;
+      if(f.hunger<0.25)rush*=1.45; // 快饿死的优先抢食
+      f._rush=rush;
       const eatR=adult?0.9:0.7;
       if(realD<eatR){
         // 谁先碰到谁吃
@@ -1241,6 +1243,7 @@ function updateEggs(dt,t){
 }
 // ---------- 生态主更新
 let autoWaterCD=0; // 自动换水冷却，避免每帧触发
+let autoFeedCD=0; // 饿死预警自动投喂冷却
 function updateEco(dt){
   if(filterOn){
     waste=Math.max(0,waste-0.030*dt);
@@ -1267,6 +1270,18 @@ function updateEco(dt){
       toast('自动换水完成 水质已满');
     }else{
       toast('自动换水中…');
+    }
+  }
+  // 饿死预警自动投喂: 有鱼 hunger<0.12 即投食到最饿的鱼附近(8秒冷却)
+  autoFeedCD=Math.max(0,autoFeedCD-dt);
+  if(autoFeedCD<=0){
+    let hungriest=null;
+    for(const f of fish)if(f.alive&&f.hunger<0.12&&(!hungriest||f.hunger<hungriest.hunger))hungriest=f;
+    if(hungriest){
+      autoFeedCD=8;
+      const hp=hungriest.grp.position;
+      dropFood(clamp(hp.x,-15,5),clamp(hp.z,-7,7),3,'fish');
+      toast('有鱼快饿死了，已自动投喂');
     }
   }
   for(let i=fish.length-1;i>=0;i--)if(!fish[i].alive)removeFish(fish[i]); // 清理死鱼
@@ -1512,15 +1527,9 @@ $('sheetX').onclick=closeSheet;
 $('sheetBg').onclick=closeSheet;
 // 顶部工具箱按钮
 $('bToolbox').onclick=e=>{e.stopPropagation();openSheet();};
-// 版权署名开关（默认关）
-let creditOn=false;
-$('bCredit').onclick=e=>{
-  e.stopPropagation();
-  creditOn=!creditOn;
-  $('credit').classList.toggle('show',creditOn);
-  e.currentTarget.classList.toggle('on',creditOn);
-  e.currentTarget.textContent=creditOn?'署名·开':'署名';
-};
+// 署名: 左下角金色小字 TP制作, 点击展开/收起完整署名
+$('credit').onclick=e=>{e.stopPropagation();$('credit').classList.toggle('show');};
+$('bCredit').onclick=e=>{e.stopPropagation();$('credit').classList.toggle('show');};
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
 // ---------- 存档(localStorage, 5秒自动)
@@ -1582,7 +1591,7 @@ const _goTimer=setInterval(()=>{
 },300);
 setTimeout(()=>{clearInterval(_goTimer);syncFishSub();},8000); // 模型失败时兜底
 syncFishSub();
-window.__tank={camera,controls,scene,turtle,fish,eggs,plaque,lampLight,
+window.__tank={camera,controls,scene,turtle,fish,food,eggs,plaque,lampLight,
   eco:()=>({waste,quality,oxygen,filterOn,dayTarget})};
 clearTimeout(window.__bootT);
 tick();
