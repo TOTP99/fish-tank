@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {BokehPass} from 'three/addons/postprocessing/BokehPass.js';
 import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 // 模型从 models/ 目录外部加载(拆分交付)
 const MODEL_URL={turtle:'./models/turtle.glb',koi:'./models/koi.glb'};
@@ -47,20 +47,12 @@ const PALETTES=[
   {light:'#ffe566',dark:'#e0a020',patch:'rgba(40,30,20,.35)'},
   {light:'#ff8c42',dark:'#c04010',patch:'rgba(255,220,100,.45)'},
   {light:'#e0b0ff',dark:'#8a40c0'},
-  {light:'#ff3d00',dark:'#b71c1c'},
-  {light:'#ffea00',dark:'#ff9100'},
-  {light:'#00e5ff',dark:'#0055ff'},
-  {light:'#ff4081',dark:'#a00037'},
-  {light:'#76ff03',dark:'#009624'},
-  {light:'#e040fb',dark:'#6a1b9a'},
 ];
-// 五品种 → 3D 体型/尾鳍/游速
+// 2D 三品种 → 3D 体型/尾鳍/游速
 const BREEDS={
-  comet:    {label:'草金', body:'torpedo', tail:'fork',  len:[1.7,2.4], speed:[1.05,1.3], cruise:1.0},
-  fantail:  {label:'扇尾', body:'deep',    tail:'veil',  len:[1.4,1.9], speed:[0.7,0.9],  cruise:0.78},
-  pearl:    {label:'珍珠', body:'round',   tail:'round', len:[1.2,1.6], speed:[0.5,0.68], cruise:0.58},
-  butterfly:{label:'蝶尾', body:'disc',    tail:'veil',  len:[1.4,1.8], speed:[0.65,0.85],cruise:0.7},
-  dragoneye:{label:'龙睛', body:'round',   tail:'fork',  len:[1.3,1.7], speed:[0.6,0.8],  cruise:0.66, eyeMul:1.7},
+  comet:  {label:'草金', body:'torpedo', tail:'fork',  len:[1.3,1.9], speed:[1.05,1.3],  cruise:1.0},
+  fantail:{label:'扇尾', body:'deep',    tail:'veil',  len:[1.1,1.5], speed:[0.7,0.9],   cruise:0.78},
+  pearl:  {label:'珍珠', body:'round',   tail:'round', len:[0.9,1.25],speed:[0.5,0.68],  cruise:0.58},
 };
 function mixHex(h1,h2,bias){
   const p=parseInt(h1.slice(1),16),q=parseInt(h2.slice(1),16);
@@ -68,7 +60,7 @@ function mixHex(h1,h2,bias){
   const r=((p>>16)&255)*(1-u)+((q>>16)&255)*u,
         g=((p>>8)&255)*(1-u)+((q>>8)&255)*u,
         b=(p&255)*(1-u)+(q&255)*u;
-  return '#'+(((r|0)<<16)|((g|0)<<8)|(b|0)).toString(16).padStart(6,'0');
+  return '#'+((((r|0)<<16)|((g|0)<<8)|(b|0)).toString(16).padStart(6,'0');
 }
 function mixHue(a,b){ // 颜色遗传
   const hue={light:mixHex(a.light,b.light),dark:mixHex(a.dark,b.dark)};
@@ -93,7 +85,7 @@ const RAMP_CURVE=new THREE.CatmullRomCurve3(RAMP_PTS);
 const RAMP_A=RAMP_PTS[0].clone();                    // 乌龟上岸起点
 const RAMP_B=RAMP_PTS[RAMP_PTS.length-1].clone();    // 晒背点
 
-// ---------- renderer / camera(固定机位 + 呼吸漂移)
+// ---------- renderer / camera / controls
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);
@@ -104,24 +96,16 @@ renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,300);
-const CAM_HOME=new THREE.Vector3(3,11.5,37),CAM_LOOK=new THREE.Vector3(0,8.5,0);
-camera.position.copy(CAM_HOME);camera.lookAt(CAM_LOOK);
-// 手势: 拖动旋转(阻尼, 限俯仰) + 点按喂食; 待机时镜头缓慢漂移, 首次触碰后交由用户
+camera.position.set(3,11.5,37);
 const controls=new OrbitControls(camera,renderer.domElement);
-controls.target.copy(CAM_LOOK);
-controls.enableDamping=true;controls.dampingFactor=.06;
-controls.enablePan=false;controls.enableZoom=false;
-controls.minPolarAngle=.55;controls.maxPolarAngle=1.62;
-controls.minDistance=18;controls.maxDistance=60;
-let userTookCam=false;
-function driftCam(t){
-  if(userTookCam||(window.__tank&&window.__tank.noDrift))return;
-  camera.position.set(
-    CAM_HOME.x+Math.sin(t*.07)*1.6,
-    CAM_HOME.y+Math.sin(t*.11+1)*.8,
-    CAM_HOME.z+Math.cos(t*.05)*1.2);
-  camera.lookAt(CAM_LOOK);
-}
+controls.target.set(0,8.5,0);
+controls.enableDamping=true; controls.dampingFactor=.06;
+controls.minDistance=16; controls.maxDistance=75;
+controls.maxPolarAngle=1.45; controls.minPolarAngle=.12;
+controls.enablePan=false;
+controls.autoRotate=true; controls.autoRotateSpeed=.45;
+let idleT=0;
+controls.addEventListener('start',()=>{controls.autoRotate=false;idleT=0;});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight)});
 
@@ -233,48 +217,6 @@ scene.add(topSurf);
   const cab=new THREE.Mesh(new THREE.BoxGeometry(TANK.w+2.4,7,TANK.d+2.4),new THREE.MeshStandardMaterial({color:0x2c1f12,roughness:.8}));
   cab.position.y=-3.6;scene.add(cab);
 }
-// TP 铜牌商标: 底柜正面中央, 纯装饰(与工具箱分开, 不可点击)
-const plaque=(()=>{
-  const c=document.createElement('canvas');c.width=320;c.height=96;
-  const x=c.getContext('2d');
-  const gr=x.createLinearGradient(0,0,0,96);
-  gr.addColorStop(0,'#7a3f16');gr.addColorStop(.5,'#d99a5c');gr.addColorStop(1,'#8a4b1f');
-  x.fillStyle=gr;x.fillRect(0,0,320,96);
-  x.strokeStyle='rgba(50,25,5,.9)';x.lineWidth=6;x.strokeRect(4,4,312,88);
-  x.fillStyle='#2a1505';x.font='700 46px Georgia,serif';
-  x.textAlign='center';x.textBaseline='middle';x.fillText('TP制作',160,52);
-  const m=new THREE.Mesh(new THREE.BoxGeometry(4.4,1.7,.2),
-    new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(c),
-      metalness:.65,roughness:.35,emissive:0x2a1e05,emissiveIntensity:.5}));
-  m.position.set(0,-3.2,(TANK.d+2.4)/2+.12);
-  scene.add(m);return m;
-})();
-
-// 工具箱: 底柜正面右侧的红色金属箱, 点击打开工具箱弹窗
-const toolbox=(()=>{
-  const g=new THREE.Group();
-  const bodyM=new THREE.MeshStandardMaterial({color:0xb03020,roughness:.45,metalness:.55});
-  const body=new THREE.Mesh(new THREE.BoxGeometry(4.4,2.6,2.6),bodyM);
-  body.castShadow=true;g.add(body);
-  const lid=new THREE.Mesh(new THREE.BoxGeometry(4.6,.7,2.8),
-    new THREE.MeshStandardMaterial({color:0x8e2418,roughness:.4,metalness:.6}));
-  lid.position.y=1.65;lid.castShadow=true;g.add(lid);
-  const handle=new THREE.Mesh(new THREE.TorusGeometry(.85,.11,10,24,Math.PI),
-    new THREE.MeshStandardMaterial({color:0xd8d8d8,roughness:.3,metalness:.9}));
-  handle.position.y=2;g.add(handle);
-  const latch=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.14),
-    new THREE.MeshStandardMaterial({color:0xe0e0e0,roughness:.25,metalness:.95}));
-  latch.position.set(0,-.2,1.36);g.add(latch);
-  const lc=document.createElement('canvas');lc.width=256;lc.height=64;
-  const lx=lc.getContext('2d');
-  lx.fillStyle='#f5f0e6';lx.font='700 40px sans-serif';
-  lx.textAlign='center';lx.textBaseline='middle';lx.fillText('工具箱',128,34);
-  const label=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.65),
-    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(lc),transparent:true}));
-  label.position.set(0,.35,1.32);g.add(label);
-  g.position.set(13.2,-1.7,(TANK.d+2.4)/2+1.35);
-  scene.add(g);return g;
-})();
 
 // ---------- decor helpers (ported)
 const hsl=(h,s,l)=>new THREE.Color().setHSL(((h%1)+1)%1,s,l);
@@ -354,7 +296,7 @@ function updatePlants(dt){
 }
 function trimPlants(){
   for(const p of plantClusters)if(p.h>p.baseH*0.7){p.h*=0.65;waste=Math.min(1,waste+0.04);}
-  toast('水草已修剪');blip(420,0.12,0.09);
+  toast('🌿 水草已修剪');blip(420,0.12,0.09);
 }
 // 取暖灯
 const lampLight=new THREE.SpotLight(0xffc37a,30,45,.5,.45,1.6);
@@ -411,13 +353,12 @@ function genGenome(){
 function genGenomeFor(breed,hue){
   const B=BREEDS[breed]||BREEDS.comet,g=genGenome();
   g.body=B.body;g.tail=B.tail;
-  const hr={torpedo:R(.16,.22),deep:R(.45,.6),round:R(.5,.65),disc:R(.7,.95),slender:R(.1,.15)}[g.body]||R(.28,.4);
+  const hr={torpedo:R(.16,.22),deep:R(.45,.6),round:R(.5,.65),slender:R(.1,.15)}[g.body]||R(.28,.4);
   g.len=R(B.len[0],B.len[1]);g.h=g.len*hr;
-  g.w=g.len*({round:R(.35,.45),disc:R(.1,.16)}[g.body]||R(.14,.25));
+  g.w=g.len*({round:R(.35,.45)}[g.body]||R(.14,.25));
   g.tailLen=g.tail==='veil'?R(.7,1.1):g.tail==='fork'?R(.4,.6):R(.25,.45);
   g.tailH=g.tail==='veil'?R(1.2,1.8):R(.7,1.2);
   g.speed=R(B.speed[0],B.speed[1]);g.cruise=B.cruise;
-  g.eye*=B.eyeMul||1;
   g.school=false;
   const h=hue||pick(PALETTES);
   g.c1=new THREE.Color(h.light);g.c2=new THREE.Color(h.dark);
@@ -470,9 +411,7 @@ function buildFish(g){
   const fm=finMat(g.finCol),tm=g.tailCol===g.finCol?fm:finMat(g.tailCol);
   const mk=(pts,m)=>{const s=new THREE.Shape();s.moveTo(pts[0][0],pts[0][1]);
     for(let i=1;i+1<pts.length;i+=2)s.quadraticCurveTo(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
-    const fd=Math.max(.06,H*.08),geo=new THREE.ExtrudeGeometry(s,{depth:fd,bevelEnabled:false,curveSegments:12});
-    geo.translate(0,0,-fd/2);
-    const me=new THREE.Mesh(geo,m);grp.add(me);return me;};
+    const geo=new THREE.ShapeGeometry(s,12),me=new THREE.Mesh(geo,m);grp.add(me);return me;};
   const x0=-L*.46,tl=L*g.tailLen,th=H*g.tailH*.6;
   const tails={fork:[[x0,0],[x0-tl*.5,th*.4],[x0-tl,th],[x0-tl*.55,0],[x0-tl,-th],[x0-tl*.5,-th*.4],[x0,0]],
     lunate:[[x0,0],[x0-tl*.3,th*.6],[x0-tl,th*1.1],[x0-tl*.4,0],[x0-tl,-th*1.1],[x0-tl*.3,-th*.6],[x0,0]],
@@ -540,8 +479,7 @@ function addFishEntry(grp,U2,g,mixer,eco){
     vel:new THREE.Vector3(R(-1,1),R(-.1,.1),R(-.3,.3)).setLength(g.speed*1.5),
     target:new THREE.Vector3(),tt:0,alive:true,
     stage:'adult',age:R(20,60),hunger:R(.35,.6),armor:0,bites:0,biteFlash:0,
-    breedCD:R(10,20),courtT:0,starveT:0,mode:'cruise',breed:null,hue:null,koi:false,
-    pose:'cruise',poseT:R(4,10),roll:0,prevDir:new THREE.Vector3(1,0,0)},
+    breedCD:R(10,20),courtT:0,starveT:0,mode:'cruise',dartT:0,breed:null,hue:null,koi:false},
     eco||{});
   newTarget(f);scene.add(grp);fish.push(f);return f;}
 function newTarget(f){
@@ -566,6 +504,7 @@ function spawnEcoFish(breed,hue,stage,pos){
   return f;
 }
 // 锦鲤(GLB): 完整生态行为, 不参与繁殖(花纹固定)
+let koiCount=0;
 function spawnKoi(){
   loadGLB(MODEL_URL.koi,'Bone.006_end_08','Bone.004_end_07',R(1.5,1.9),(wrap)=>{
     let bodyMat=null;
@@ -574,15 +513,15 @@ function spawnKoi(){
     wrap.position.set(R(-12,0),R(3,10),R(-5,5));
     const f=addFishEntry(wrap,null,g,null,{breed:'comet',koi:true,bodyMat});
     f.baseEmissive=bodyMat?bodyMat.emissive.clone():new THREE.Color(0,0,0);
-    syncFishSub();
+    koiCount++;syncFishSub();
   });}
 function fishDie(f,cause){
   if(!f.alive)return;f.alive=false;
   waste=Math.min(1,waste+(f.stage==='adult'?0.04:0.05));
   dropFood(f.grp.position.x,f.grp.position.z,1,true); // 尸体(乌龟会清理)
-  if(cause==='starve')toast('有鱼饿死了，请投食');
-  else if(cause==='env')toast('水质恶化致死，请换水');
-  else if(cause!=='eaten')toast('一条鱼死了');
+  if(cause==='starve')toast('🐟 有鱼饿死了! 快投食');
+  else if(cause==='env')toast('☠️ 水质恶化致死! 快换水');
+  else if(cause!=='eaten')toast('🐟 一条鱼死了');
   blip(200,0.2,0.08,'triangle');
 }
 function fishStress(f){
@@ -613,7 +552,7 @@ function tryBreed(f,dt){
       const n=turtle.peaceful?RI(2,3):(chance(.4)?2:1);
       for(let i=0;i<n;i++)layEgg(p.x+R(-1.5,1.5),p.z+R(-1.5,1.5),f.hue,partner.hue,f.breed,partner.breed);
       f.breedCD=R(25,40);partner.breedCD=R(25,40);f.courtT=0;
-      toast('金鱼产卵了');blip(520,0.15,0.09);
+      toast('💕 金鱼产卵了!');blip(520,0.15,0.09);
     }
   }else f.courtT=0;
 }
@@ -665,21 +604,19 @@ function updateFish(f,dt,t){
     }else if(f.tt<0){f.mode='cruise';newTarget(f);}
   }
   tryBreed(f,dt);
-  // —— 泳姿: 巡游/冲刺/悬停/下潜, 不断切换 ——
-  f.poseT-=dt;
-  if(f.poseT<0){
-    const pool=['cruise','cruise','hover','dive','sprint'];
-    if(f.breed==='comet')pool.push('sprint','sprint');
-    f.pose=pick(pool);f.poseT=R(5,12);
-    if(f.pose==='dive')f.target.set(f.target.x,R(1.5,4),f.target.z);
+  // 草金吃饱后偶尔嬉戏冲刺
+  if(f.breed==='comet'&&f.mode==='cruise'&&f.dartT<=0&&f.hunger>0.5&&chance(dt*0.12)){
+    f.dartT=1.1;
+    f.target.set(clamp(P.x+R(-8,8),bounds.xMin,bounds.xMax),
+      clamp(P.y+R(-3,3),bounds.yMin,bounds.yMax),clamp(P.z+R(-4,4),bounds.zMin,bounds.zMax));
   }
   // —— 移动 ——
   let sp=f.g.speed*(f.g.cruise||1)*(f.mode==='flee'?1.9:f.mode==='forage'?1.25:f.mode==='court'?0.9:0.8);
-  if(f.mode==='cruise')sp*=f.pose==='sprint'?2:f.pose==='hover'?0.35:f.pose==='dive'?1.1:1;
   if(quality<0.3)sp*=0.75;
   if(oxygen<0.25)sp*=0.7;
   if(f.hunger<0.2)sp*=0.7;
   if(dayTarget<0.5)sp*=0.45; // 夜里沉底休息
+  if(f.dartT>0){f.dartT-=dt;sp*=2.1;}
   _fv.subVectors(f.target,P);
   const dist=_fv.length();
   if(dist>0.01)_fv.setLength(sp*1.6);
@@ -697,13 +634,7 @@ function updateFish(f,dt,t){
   if(f.U2){f.U2.uPh.value+=dt*f.g.freq*(.4+spd*.5);
     f.U2.uAmp.value=lerp(f.U2.uAmp.value,.12+Math.min(spd,4)*.09,dt*2);}
   if(spd>.02){_m.lookAt(_o,f.vel,_up);_q.setFromRotationMatrix(_m).multiply(_yr);
-    f.grp.quaternion.slerp(_q,Math.min(1,dt*2.5));
-    _o.copy(f.vel).normalize(); // 压坡转弯
-    const rollT=clamp((f.prevDir.x*_o.z-f.prevDir.z*_o.x)*4,-.55,.55);
-    f.roll=lerp(f.roll,rollT,Math.min(1,dt*3));
-    f.grp.rotateX(f.roll);
-    f.prevDir.copy(_o);
-  }
+    f.grp.quaternion.slerp(_q,Math.min(1,dt*2.5));}
   // —— 紧迫体色: 发红 + 被咬闪红 ——
   if(f.bodyMat){
     const s=fishStress(f);
@@ -719,7 +650,7 @@ const turtle={grp:null,mixer:null,state:'swim',t:R(20,40),vel:new THREE.Vector3(
   hunger:0.35,eatTimer:0,belly:0,baskTimer:R(22,32),breath:1,breathWarned:false,
   frenzy:false,frenzyTimer:0,peaceful:true,sleepPos:new THREE.Vector3(),_ps:'swim'};
 function turtleTarget(){turtle.target.set(R(-15,5),R(2.5,12),R(-7,7));}
-loadGLB(MODEL_URL.turtle,'head_05','tail1_01',3.4,(wrap,mixer)=>{
+loadGLB(MODEL_URL.turtle,'head_05','tail1_01',2.7,(wrap,mixer)=>{
   turtle.grp=wrap;turtle.mixer=mixer;
   wrap.position.set(-6,6,2);turtleTarget();turtle.t=R(25,45);
 });
@@ -760,11 +691,11 @@ function turtleFindPrey(){
 function turtleEat(target,kind){
   if(kind==='food'){target.userData.eaten=true;scene.remove(target);food.splice(food.indexOf(target),1);}
   else if(kind==='egg')target.alive=false;
-  else if(kind==='baby'){fishDie(target,'eaten');toast('乌龟吃掉了一条小鱼');}
+  else if(kind==='baby'){fishDie(target,'eaten');toast('🦖 乌龟吃掉了一条小鱼!');}
   else if(kind==='adult'){
     target.bites=(target.bites||0)+1;target.biteFlash=0.4;
-    if(target.bites>=3){fishDie(target,'eaten');toast('大鱼被乌龟吃掉了');}
-    else toast('乌龟在咬大鱼');
+    if(target.bites>=3){fishDie(target,'eaten');toast('🦖 大鱼被乌龟吃掉了!');}
+    else toast('🦖 乌龟在咬大鱼!');
   }
   turtle.eatTimer=turtle.frenzy?0.3:0.55;
   turtle.hunger=clamp(turtle.hunger-(kind==='baby'?0.5:kind==='egg'?0.2:kind==='adult'?0.3:0.32),0,1);
@@ -785,8 +716,7 @@ function updateTurtle(dt,t){
     T.frenzyTimer-=dt;
     if(T.frenzyTimer<=0){T.frenzy=false;
       if(night){T.state='sleep';T.sleepPos.set(R(-12,4),0.8,R(-5,5));}
-      $('bFrenzy').classList.remove('armed');$('frenzySub').textContent='危险 20 秒';
-      toast('乌龟冷静下来了');}
+      toast('🦖 乌龟冷静下来了');}
   }
   T.hunger=clamp(T.hunger+dt*0.01,0,1);
   // —— 呼吸: 水下持续耗气(约50秒), 睡眠极慢; 水面/晒背快速回气 ——
@@ -795,7 +725,7 @@ function updateTurtle(dt,t){
   else T.breath=Math.min(1,T.breath+dt*0.6);
   if(T.breath<0.25&&under){
     T.state='surface';T.t=3;
-    if(!T.breathWarned){T.breathWarned=true;toast('乌龟上浮换气');}
+    if(!T.breathWarned){T.breathWarned=true;toast('🐢 乌龟上浮换气');}
   }else if(T.breath>0.9)T.breathWarned=false;
   // —— 日行性: 夜晚沉底睡觉(不捕猎=和平) ——
   if(night&&!T.frenzy&&(T.state==='swim'||T.state==='hunt')){
@@ -957,7 +887,7 @@ function updateEggs(dt,t){
       scene.remove(e.mesh);
       if(fish.filter(f=>f.alive).length<MAX_FISH&&quality>0.3){
         spawnEcoFish(chance(.5)?e.breedA:e.breedB,mixHue(e.hueA,e.hueB),'baby',e.mesh.position.clone());
-        toast('小鱼孵化了');blip(700,0.12,0.08);
+        toast('🐣 小鱼孵化了!');blip(700,0.12,0.08);
       }
       continue;
     }
@@ -980,32 +910,39 @@ function updateEco(dt){
   quality+=(target-quality)*Math.min(1,dt*0.6);
   for(let i=fish.length-1;i>=0;i--)if(!fish[i].alive)removeFish(fish[i]); // 清理死鱼
 }
-// 工具箱点击 → 打开工具箱弹窗; 点按水面 → 喂食(点按=位移<10px 且 <450ms, 与拖动旋转区分)
-const clickRay=new THREE.Raycaster(),clickNdc=new THREE.Vector2();
-function toolboxHit(e){
-  clickNdc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
-  clickRay.setFromCamera(clickNdc,camera);
-  return clickRay.intersectObject(toolbox,true).length>0;
-}
-const tapPlane=new THREE.Plane(new THREE.Vector3(0,1,0),-(TANK.water-2));
-let pd=null;
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+let pdown=null,lpTimer=null,lpFired=false;
+const TAP_LIM=8,LP_LIM=14,LP_MS=550;
 renderer.domElement.addEventListener('pointerdown',e=>{
-  userTookCam=true;pd={x:e.clientX,y:e.clientY,t:performance.now()};
-},{passive:true});
-renderer.domElement.addEventListener('pointerup',e=>{
-  if(!pd)return;
-  const dx=e.clientX-pd.x,dy=e.clientY-pd.y,dt=performance.now()-pd.t;pd=null;
-  if(dx*dx+dy*dy>100||dt>450)return;
-  if(toolboxHit(e)){openSheet();return;}
-  clickNdc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
-  clickRay.setFromCamera(clickNdc,camera);
-  const hit=new THREE.Vector3();
-  if(clickRay.ray.intersectPlane(tapPlane,hit))
-    feed(clamp(hit.x,-TANK.w/2+1,TANK.w/2-1),clamp(hit.z,-TANK.d/2+1,TANK.d/2-1)),blip(620,.1,.08);
+  idleT=0;lpFired=false;
+  pdown={x:e.clientX,y:e.clientY,t:performance.now()};
+  $('dash').classList.remove('open');
+  try{renderer.domElement.setPointerCapture(e.pointerId);}catch(_){}
+  clearTimeout(lpTimer);
+  lpTimer=setTimeout(()=>{lpFired=true;openSheet();},LP_MS);
 });
 renderer.domElement.addEventListener('pointermove',e=>{
-  renderer.domElement.style.cursor=toolboxHit(e)?'pointer':'default';
+  if(!pdown||lpFired)return;
+  if(Math.hypot(e.clientX-pdown.x,e.clientY-pdown.y)>LP_LIM)clearTimeout(lpTimer);
 });
+const endPointer=e=>{
+  if(!pdown)return;
+  clearTimeout(lpTimer);
+  const wasLp=lpFired;
+  const moved=Math.hypot(e.clientX-pdown.x,e.clientY-pdown.y);
+  const dtMs=performance.now()-pdown.t;
+  pdown=null;lpFired=false;
+  if(wasLp)return;
+  if(moved<TAP_LIM&&dtMs<600){
+    ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+    ray.setFromCamera(ndc,camera);
+    const t=(TANK.water-4-ray.ray.origin.y)/ray.ray.direction.y;
+    if(t>0){const p=ray.ray.at(t,new THREE.Vector3());
+      feed(clamp(p.x,-15,5),clamp(p.z,-7,7));}
+  }
+};
+renderer.domElement.addEventListener('pointerup',endPointer);
+renderer.domElement.addEventListener('pointercancel',()=>{pdown=null;lpFired=false;clearTimeout(lpTimer);});
 
 // ---------- day / night
 const dayCfg={sun:3,sunCol:new THREE.Color(0xfff2dd),hemi:.75,bg:new THREE.Color(0x1a5a74),
@@ -1029,17 +966,19 @@ function applyDayNight(k,dt){
 // ---------- main loop
 const clock=new THREE.Clock(),_v=new THREE.Vector3(),_q=new THREE.Quaternion(),_m=new THREE.Matrix4(),
   _up=new THREE.Vector3(0,1,0),_yr=new THREE.Quaternion().setFromAxisAngle(_up,Math.PI/2),_o=new THREE.Vector3();
-let firstFrame=true;
+let turnT=12,firstFrame=true;
 function tick(){
   const rdt=Math.min(clock.getDelta(),.05),dt=rdt,t=clock.elapsedTime;
   U.uTime.value=t;
   applyDayNight(0,rdt);
-  driftCam(t);
+  idleT+=rdt;
+  if(idleT>10&&!controls.autoRotate)controls.autoRotate=true;
   controls.update();
   // 相机在水面上方时:水面几乎透明 + 藏起"从下看的波光",避免俯视被挡
   const aboveWater=camera.position.y>TANK.water+.5;
   topSurf.material.opacity+=(((aboveWater)?.06:.18)-topSurf.material.opacity)*Math.min(1,rdt*4);
   surf.visible=!aboveWater;
+  if(t>turnT){turnT=t+R(14,30);}
   // 生态更新
   updatePlants(dt);
   updateFood(dt,t);
@@ -1062,11 +1001,11 @@ function tick(){
   if(fx)composer.render();else renderer.render(scene,camera);
   if(firstFrame){firstFrame=false;
     setTimeout(()=>{const l=$('loading');l.style.opacity=0;setTimeout(()=>l.remove(),900);
-      setTimeout(()=>toast('点击鱼缸正面的 TP 铭牌打开工具箱'),1200);},400);}
+      setTimeout(()=>$('hint').style.opacity=0,9000);},400);}
   requestAnimationFrame(tick);
 }
 
-// ---------- HUD: toast / 警报 / 水情(工具箱内)
+// ---------- HUD: toast / 警报 / 水状态仪表盘
 const toastEl=$('toast'),alertEl=$('alert');
 let toastTimer=null;const toastQ=[];
 function toast(msg){
@@ -1083,6 +1022,9 @@ function nextToast(){
     toastTimer=setTimeout(nextToast,300);
   },1500);
 }
+const dashEl=$('dash');
+$('dashPill').onclick=e=>{e.stopPropagation();dashEl.classList.toggle('open');};
+const barColor=v=>v>0.55?'#3dcc7a':v>0.3?'#d4a017':'#d4452f';
 function advice(){
   const tips=[];
   if(waste>0.55&&!filterOn)tips.push('开过滤');
@@ -1092,75 +1034,67 @@ function advice(){
   const hungry=fish.filter(f=>f.alive&&f.hunger<0.25).length;
   if(hungry)tips.push(hungry+'条鱼饿');
   if(fish.filter(f=>f.alive).length>=MAX_FISH)tips.push('已满员');
-  return tips.slice(0,2).join(' · ')||'生态稳定';
+  return tips.slice(0,2).join(' · ')||'生态稳定 🌿';
 }
 let hudT=0;
 function updateHUD(dt){
   hudT-=dt;if(hudT>0)return;hudT=0.25;
   const q=Math.round(quality*100),o=Math.round(oxygen*100),w=Math.round(waste*100);
-  const set=(id,txt,cls)=>{const e=$(id);e.textContent=txt;e.className='wv '+(cls||'');};
-  set('wqV',q+'%',q>55?'good':q>30?'warn':'bad');
-  set('woV',o+'%',oxygen>0.55?'good':oxygen>0.3?'warn':'bad');
-  set('wwV',w+'%',waste>0.6?'bad':waste>0.35?'warn':'good');
+  $('qFill').style.width=q+'%';$('qFill').style.background=barColor(quality);$('qVal').textContent=q+'%';
+  $('oFill').style.width=o+'%';
+  $('oFill').style.background=oxygen>0.55?'#5ec8ff':oxygen>0.3?'#d4a017':'#d4452f';
+  $('oVal').textContent=o+'%';
+  $('wFill').style.width=w+'%';
+  $('wFill').style.background=waste>0.6?'#d4452f':waste>0.35?'#d4a017':'#3dcc7a';
+  $('wVal').textContent=w+'%';
   const alive=fish.filter(f=>f.alive).length;
   const babies=fish.filter(f=>f.alive&&f.stage==='baby').length;
-  set('wfV',alive+' 条'+(babies?' (幼 '+babies+')':'')+(eggs.length?' + 卵 '+eggs.length:''),'');
-  set('wdV',dayTarget>0.5?'白天':'黑夜','');
-  set('wflV',filterOn?'已开启':'已关闭',filterOn?'good':'');
-  $('wAdvice').textContent=advice();
+  $('fishVal').textContent='🐟 '+alive+(babies?'(幼'+babies+')':'')+(eggs.length?' 🥚'+eggs.length:'');
+  $('dayVal').textContent=dayTarget>0.5?'☀️':'🌙';
+  $('filterVal').textContent=filterOn?'🌀开':'🌀关';
+  $('advice').textContent=advice();
+  $('dQ').style.background=barColor(quality);
+  $('dO').style.background=oxygen>0.55?'#5ec8ff':oxygen>0.3?'#d4a017':'#d4452f';
+  $('dW').style.background=waste>0.6?'#d4452f':waste>0.35?'#d4a017':'#3dcc7a';
+  $('dashMini').textContent='水质'+q+'%';
   let msg='';
-  if(quality<0.18)msg='水质危险，请换水';
-  else if(oxygen<0.2)msg='严重缺氧，请开过滤';
-  else if(fish.some(f=>f.alive&&f.hunger<0.12))msg='有鱼快饿死了';
+  if(quality<0.18)msg='⚠️ 水质危险! 请换水';
+  else if(oxygen<0.2)msg='⚠️ 严重缺氧! 请开过滤';
+  else if(fish.some(f=>f.alive&&f.hunger<0.12))msg='⚠️ 有鱼快饿死了!';
+  $('dashPill').classList.toggle('warn',!!msg);
   if(msg){alertEl.textContent=msg;alertEl.classList.add('show');}
   else alertEl.classList.remove('show');
 }
 
 // ---------- 工具栏弹窗
-const openSheet=()=>{
-  const s=$('sheet'),b=$('sheetBg');
-  s.classList.add('open');b.classList.add('open');
-  clearTimeout(s._t);
-  s._t=setTimeout(()=>{ // 兜底: transition 在某些环境不推进时强制终态
-    if(s.classList.contains('open')){
-      s.style.opacity='1';s.style.transform='translate(-50%,-50%) scale(1)';s.style.pointerEvents='auto';
-      b.style.opacity='1';b.style.pointerEvents='auto';
-    }
-  },450);
-};
-const closeSheet=()=>{
-  const s=$('sheet'),b=$('sheetBg');
-  clearTimeout(s._t);
-  s.classList.remove('open');b.classList.remove('open');
-  s.style.opacity='';s.style.transform='';s.style.pointerEvents='';
-  b.style.opacity='';b.style.pointerEvents='';
-};
+const openSheet=()=>{$('sheet').classList.add('open');$('sheetBg').classList.add('open');};
+const closeSheet=()=>{$('sheet').classList.remove('open');$('sheetBg').classList.remove('open');};
 const syncFishSub=()=>{$('fishSub').textContent=`缸里 ${fish.filter(f=>f.alive).length} 条`;};
 function feedAction(){feed(R(-10,2),R(-5,5));blip(620,0.1,0.08);}
 function waterAction(){
   waste*=0.45;oxygen=Math.min(1,oxygen+0.25);
-  toast('已换水，水质提升');blip(360,0.15,0.09);
+  toast('💧 已换水, 水质提升');blip(360,0.15,0.09);
 }
 function filterAction(){
   filterOn=!filterOn;
   $('bFilter').classList.toggle('on',filterOn);
   $('filterSub').textContent=filterOn?'已开启':'已关闭';
-  toast(filterOn?'过滤已开启':'过滤已关闭');
+  toast(filterOn?'🌀 过滤已开启':'🌀 过滤已关闭');
   blip(filterOn?500:280,0.12,0.09);
 }
 function addFishAction(){
-  if(fish.filter(f=>f.alive).length>=MAX_FISH){toast('鱼缸满了');blip(180,0.15,0.08);return;}
+  if(fish.filter(f=>f.alive).length>=MAX_FISH){toast('🐟 鱼缸满了!');blip(180,0.15,0.08);return;}
   const hue=Object.assign({},pick(PALETTES));
-  const f=spawnEcoFish(pick(Object.keys(BREEDS)),hue,'adult');
+  const f=spawnEcoFish(pick(['comet','fantail','pearl']),hue,'adult');
   f.grp.scale.setScalar(1.35);
-  toast('新'+BREEDS[f.breed].label+'入缸');blip(640,0.12,0.09);
+  toast('🐟 新'+BREEDS[f.breed].label+'入缸!');blip(640,0.12,0.09);
   syncFishSub();
 }
 function dayAction(){
   dayTarget=dayTarget>0.5?0:1;
   $('bDay').classList.toggle('on',!!dayTarget);
   $('daySub').textContent=dayTarget?'白天':'黑夜';
-  toast(dayTarget?'白天':'夜晚');blip(dayTarget?700:300,0.15,0.09);
+  toast(dayTarget?'☀️ 白天':'🌙 夜晚');blip(dayTarget?700:300,0.15,0.09);
 }
 $('bFeed').onclick=feedAction;
 $('bFish').onclick=addFishAction;
@@ -1168,15 +1102,15 @@ $('bWater').onclick=waterAction;
 $('bFilter').onclick=filterAction;
 $('bDay').onclick=dayAction;
 $('bFx').onclick=e=>{fx=!fx;const b=e.currentTarget;
-  b.classList.toggle('on',fx);$('fxSub').textContent=fx?'已开启':'已关闭';};
+  b.classList.toggle('on',fx);$('fxSub').textContent=fx?'电影级已开':'已关闭';};
 $('bTrim').onclick=()=>trimPlants();
 $('bFrenzy').onclick=()=>{
   if(!turtle.grp)return;
   turtle.frenzy=true;turtle.frenzyTimer=20;turtle.state='hunt';
-  $('bFrenzy').classList.add('armed');$('frenzySub').textContent='狂暴中';
-  toast('乌龟狂暴 20 秒，会攻击所有鱼');
+  toast('⚠️ 乌龟狂暴20秒! 会攻击所有鱼');
   closeSheet();blip(140,0.3,0.12,'sawtooth');
 };
+$('bFs').onclick=()=>{closeSheet();document.documentElement.requestFullscreen?.();};
 $('bReset').onclick=()=>{try{localStorage.removeItem(SAVE_KEY);}catch(e){}location.reload();};
 $('sheetX').onclick=closeSheet;
 $('sheetBg').onclick=closeSheet;
@@ -1228,20 +1162,21 @@ window.addEventListener('pagehide',saveGame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
 
 // ---------- go
-const _breeds=Object.keys(BREEDS);
-for(let i=0;i<_breeds.length;i++)spawnEcoFish(_breeds[i],PALETTES[i%PALETTES.length],'adult');
-spawnKoi();spawnKoi();
+spawnEcoFish('comet',PALETTES[0],'adult');   // 开缸三条: 草金 / 扇尾 / 珍珠
+spawnEcoFish('fantail',PALETTES[1],'adult');
+spawnEcoFish('pearl',PALETTES[2],'adult');
+spawnKoi();spawnKoi();                        // 2 条观赏锦鲤
 let restored=false;
 // 乌龟模型异步加载, 等它就绪后再读档(需要 turtle.grp)
 const _goTimer=setInterval(()=>{
   if(!turtle.grp)return;
   clearInterval(_goTimer);
   restored=loadGame();
-  if(restored)setTimeout(()=>toast('已恢复上次的鱼缸'),600);
+  if(restored)setTimeout(()=>toast('📂 已恢复上次的鱼缸'),600);
   syncFishSub();
 },300);
 setTimeout(()=>{clearInterval(_goTimer);syncFishSub();},8000); // 模型失败时兜底
 syncFishSub();
-window.__tank={camera,controls,scene,turtle,fish,food,eggs,plaque,toolbox,lampLight,
+window.__tank={camera,controls,scene,turtle,fish,eggs,lampLight,
   eco:()=>({waste,quality,oxygen,filterOn,dayTarget})};
 tick();
