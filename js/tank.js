@@ -6,6 +6,7 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {BokehPass} from 'three/addons/postprocessing/BokehPass.js';
 import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 // 模型从 models/ 目录外部加载(拆分交付)
 const MODEL_URL={turtle:'./models/turtle.glb',koi:'./models/koi.glb'};
@@ -105,9 +106,16 @@ const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,300);
 const CAM_HOME=new THREE.Vector3(3,11.5,37),CAM_LOOK=new THREE.Vector3(0,8.5,0);
 camera.position.copy(CAM_HOME);camera.lookAt(CAM_LOOK);
-// 固定机位 + 缓慢呼吸式漂移(无手势, 纯观赏)
+// 手势: 拖动旋转(阻尼, 限俯仰) + 点按喂食; 待机时镜头缓慢漂移, 首次触碰后交由用户
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.copy(CAM_LOOK);
+controls.enableDamping=true;controls.dampingFactor=.06;
+controls.enablePan=false;controls.enableZoom=false;
+controls.minPolarAngle=.55;controls.maxPolarAngle=1.62;
+controls.minDistance=18;controls.maxDistance=60;
+let userTookCam=false;
 function driftCam(t){
-  if(window.__tank&&window.__tank.noDrift)return;
+  if(userTookCam||(window.__tank&&window.__tank.noDrift))return;
   camera.position.set(
     CAM_HOME.x+Math.sin(t*.07)*1.6,
     CAM_HOME.y+Math.sin(t*.11+1)*.8,
@@ -225,21 +233,47 @@ scene.add(topSurf);
   const cab=new THREE.Mesh(new THREE.BoxGeometry(TANK.w+2.4,7,TANK.d+2.4),new THREE.MeshStandardMaterial({color:0x2c1f12,roughness:.8}));
   cab.position.y=-3.6;scene.add(cab);
 }
-// TP 商标铭牌: 黄铜质感, 底柜正面中央, 点击打开工具箱
+// TP 铜牌商标: 底柜正面中央, 纯装饰(与工具箱分开, 不可点击)
 const plaque=(()=>{
-  const c=document.createElement('canvas');c.width=256;c.height=96;
+  const c=document.createElement('canvas');c.width=320;c.height=96;
   const x=c.getContext('2d');
   const gr=x.createLinearGradient(0,0,0,96);
-  gr.addColorStop(0,'#8a6a2f');gr.addColorStop(.5,'#d9b45c');gr.addColorStop(1,'#7a5c26');
-  x.fillStyle=gr;x.fillRect(0,0,256,96);
-  x.strokeStyle='rgba(60,40,10,.85)';x.lineWidth=6;x.strokeRect(4,4,248,88);
-  x.fillStyle='#2a1f08';x.font='700 54px Georgia,serif';
-  x.textAlign='center';x.textBaseline='middle';x.fillText('TP',128,52);
+  gr.addColorStop(0,'#7a3f16');gr.addColorStop(.5,'#d99a5c');gr.addColorStop(1,'#8a4b1f');
+  x.fillStyle=gr;x.fillRect(0,0,320,96);
+  x.strokeStyle='rgba(50,25,5,.9)';x.lineWidth=6;x.strokeRect(4,4,312,88);
+  x.fillStyle='#2a1505';x.font='700 46px Georgia,serif';
+  x.textAlign='center';x.textBaseline='middle';x.fillText('TP制作',160,52);
   const m=new THREE.Mesh(new THREE.BoxGeometry(4.4,1.7,.2),
     new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(c),
       metalness:.65,roughness:.35,emissive:0x2a1e05,emissiveIntensity:.5}));
   m.position.set(0,-3.2,(TANK.d+2.4)/2+.12);
   scene.add(m);return m;
+})();
+
+// 工具箱: 底柜正面右侧的红色金属箱, 点击打开工具箱弹窗
+const toolbox=(()=>{
+  const g=new THREE.Group();
+  const bodyM=new THREE.MeshStandardMaterial({color:0xb03020,roughness:.45,metalness:.55});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(4.4,2.6,2.6),bodyM);
+  body.castShadow=true;g.add(body);
+  const lid=new THREE.Mesh(new THREE.BoxGeometry(4.6,.7,2.8),
+    new THREE.MeshStandardMaterial({color:0x8e2418,roughness:.4,metalness:.6}));
+  lid.position.y=1.65;lid.castShadow=true;g.add(lid);
+  const handle=new THREE.Mesh(new THREE.TorusGeometry(.85,.11,10,24,Math.PI),
+    new THREE.MeshStandardMaterial({color:0xd8d8d8,roughness:.3,metalness:.9}));
+  handle.position.y=2;g.add(handle);
+  const latch=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.14),
+    new THREE.MeshStandardMaterial({color:0xe0e0e0,roughness:.25,metalness:.95}));
+  latch.position.set(0,-.2,1.36);g.add(latch);
+  const lc=document.createElement('canvas');lc.width=256;lc.height=64;
+  const lx=lc.getContext('2d');
+  lx.fillStyle='#f5f0e6';lx.font='700 40px sans-serif';
+  lx.textAlign='center';lx.textBaseline='middle';lx.fillText('工具箱',128,34);
+  const label=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.65),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(lc),transparent:true}));
+  label.position.set(0,.35,1.32);g.add(label);
+  g.position.set(13.2,-1.7,(TANK.d+2.4)/2+1.35);
+  scene.add(g);return g;
 })();
 
 // ---------- decor helpers (ported)
@@ -436,7 +470,9 @@ function buildFish(g){
   const fm=finMat(g.finCol),tm=g.tailCol===g.finCol?fm:finMat(g.tailCol);
   const mk=(pts,m)=>{const s=new THREE.Shape();s.moveTo(pts[0][0],pts[0][1]);
     for(let i=1;i+1<pts.length;i+=2)s.quadraticCurveTo(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
-    const geo=new THREE.ShapeGeometry(s,12),me=new THREE.Mesh(geo,m);grp.add(me);return me;};
+    const fd=Math.max(.06,H*.08),geo=new THREE.ExtrudeGeometry(s,{depth:fd,bevelEnabled:false,curveSegments:12});
+    geo.translate(0,0,-fd/2);
+    const me=new THREE.Mesh(geo,m);grp.add(me);return me;};
   const x0=-L*.46,tl=L*g.tailLen,th=H*g.tailH*.6;
   const tails={fork:[[x0,0],[x0-tl*.5,th*.4],[x0-tl,th],[x0-tl*.55,0],[x0-tl,-th],[x0-tl*.5,-th*.4],[x0,0]],
     lunate:[[x0,0],[x0-tl*.3,th*.6],[x0-tl,th*1.1],[x0-tl*.4,0],[x0-tl,-th*1.1],[x0-tl*.3,-th*.6],[x0,0]],
@@ -944,16 +980,31 @@ function updateEco(dt){
   quality+=(target-quality)*Math.min(1,dt*0.6);
   for(let i=fish.length-1;i>=0;i--)if(!fish[i].alive)removeFish(fish[i]); // 清理死鱼
 }
-// TP 铭牌点击 → 打开工具箱(界面唯一入口)
+// 工具箱点击 → 打开工具箱弹窗; 点按水面 → 喂食(点按=位移<10px 且 <450ms, 与拖动旋转区分)
 const clickRay=new THREE.Raycaster(),clickNdc=new THREE.Vector2();
-function plaqueHit(e){
+function toolboxHit(e){
   clickNdc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
   clickRay.setFromCamera(clickNdc,camera);
-  return clickRay.intersectObject(plaque,false).length>0;
+  return clickRay.intersectObject(toolbox,true).length>0;
 }
-renderer.domElement.addEventListener('click',e=>{if(plaqueHit(e))openSheet();});
+const tapPlane=new THREE.Plane(new THREE.Vector3(0,1,0),-(TANK.water-2));
+let pd=null;
+renderer.domElement.addEventListener('pointerdown',e=>{
+  userTookCam=true;pd={x:e.clientX,y:e.clientY,t:performance.now()};
+},{passive:true});
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!pd)return;
+  const dx=e.clientX-pd.x,dy=e.clientY-pd.y,dt=performance.now()-pd.t;pd=null;
+  if(dx*dx+dy*dy>100||dt>450)return;
+  if(toolboxHit(e)){openSheet();return;}
+  clickNdc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  clickRay.setFromCamera(clickNdc,camera);
+  const hit=new THREE.Vector3();
+  if(clickRay.ray.intersectPlane(tapPlane,hit))
+    feed(clamp(hit.x,-TANK.w/2+1,TANK.w/2-1),clamp(hit.z,-TANK.d/2+1,TANK.d/2-1)),blip(620,.1,.08);
+});
 renderer.domElement.addEventListener('pointermove',e=>{
-  renderer.domElement.style.cursor=plaqueHit(e)?'pointer':'default';
+  renderer.domElement.style.cursor=toolboxHit(e)?'pointer':'default';
 });
 
 // ---------- day / night
@@ -984,6 +1035,7 @@ function tick(){
   U.uTime.value=t;
   applyDayNight(0,rdt);
   driftCam(t);
+  controls.update();
   // 相机在水面上方时:水面几乎透明 + 藏起"从下看的波光",避免俯视被挡
   const aboveWater=camera.position.y>TANK.water+.5;
   topSurf.material.opacity+=(((aboveWater)?.06:.18)-topSurf.material.opacity)*Math.min(1,rdt*4);
@@ -1190,6 +1242,6 @@ const _goTimer=setInterval(()=>{
 },300);
 setTimeout(()=>{clearInterval(_goTimer);syncFishSub();},8000); // 模型失败时兜底
 syncFishSub();
-window.__tank={camera,scene,turtle,fish,eggs,plaque,lampLight,
+window.__tank={camera,controls,scene,turtle,fish,food,eggs,plaque,toolbox,lampLight,
   eco:()=>({waste,quality,oxygen,filterOn,dayTarget})};
 tick();
