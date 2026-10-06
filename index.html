@@ -3,75 +3,88 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>3D生态缸</title>
+<title>🐢 3D生态缸</title>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#04141d;
-    font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  html,body{margin:0;height:100%;overflow:hidden;background:#04141d;font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
     -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
   canvas{display:block}
+  /* —— 水状态仪表盘：默认小药丸，点开展示详情 —— */
+  #dash{position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;z-index:6}
+  #dashPill{display:flex;align-items:center;gap:7px;border:1px solid rgba(120,190,205,.35);
+    border-radius:999px;background:rgba(8,18,26,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    color:#d9f4f7;font-size:11px;font-weight:800;padding:7px 12px;cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  #dashPill:active{transform:scale(.94)}
+  #dashPill .dot{width:8px;height:8px;border-radius:50%;background:#3dcc7a}
+  #dashPill.warn{border-color:rgba(255,90,70,.75);animation:pillPulse 1.2s infinite}
+  @keyframes pillPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,90,70,.55)}50%{box-shadow:0 0 0 7px rgba(255,90,70,0)}}
+  #dashPanel{display:none;margin-top:6px;background:rgba(8,18,26,.72);
+    border:1px solid rgba(111,190,205,.35);border-radius:14px;padding:10px 12px;min-width:180px;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 22px rgba(0,0,0,.4)}
+  #dash.open #dashPanel{display:block}
+  .drow{display:flex;align-items:center;gap:6px;margin:4px 0}
+  .drow .lab{font-size:10px;color:#9fb8bd;width:2em;font-weight:700}
+  .dbar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+  .dbar>i{display:block;height:100%;border-radius:3px;transition:width .4s}
+  .dval{font-size:10px;color:#eef6f8;width:3em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  #dash .meta{display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:#eef6f8;font-weight:700}
+  #advice{margin-top:4px;font-size:10px;color:#e0b25a;font-weight:700;line-height:1.4;max-width:180px}
+  /* —— 顶部警报 —— */
   #alert{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:7;
-    pointer-events:none;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;
+    pointer-events:none;font-size:12px;font-weight:800;color:#fff;white-space:nowrap;
     background:rgba(180,40,30,.92);padding:7px 15px;border-radius:11px;
     opacity:0;transition:opacity .3s;box-shadow:0 4px 16px rgba(180,40,30,.4)}
   #alert.show{opacity:1}
+  /* —— 事件 toast —— */
   #toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:7;
-    pointer-events:none;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;
+    pointer-events:none;font-size:12px;font-weight:800;color:#fff;white-space:nowrap;
     background:rgba(20,80,60,.92);padding:8px 16px;border-radius:12px;
     opacity:0;transition:opacity .25s,transform .25s}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-  #credit{position:fixed;left:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;
-    color:rgba(255,255,255,.42);font-size:10px;line-height:1.5;max-width:60vw;pointer-events:none}
-  /* 工具箱弹窗 */
+  #credit{position:fixed;left:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;color:rgba(255,255,255,.42);
+    font-size:10px;line-height:1.5;max-width:60vw;pointer-events:none}
+  #hint{position:fixed;bottom:calc(30px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:5;
+    color:rgba(255,255,255,.85);font-size:12px;background:rgba(2,20,30,.45);padding:6px 14px;border-radius:999px;
+    transition:opacity 1.5s;pointer-events:none;white-space:nowrap}
+  /* —— 工具栏弹窗 —— */
   #sheetBg{position:fixed;inset:0;z-index:8;background:rgba(2,12,20,.5);
     backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
     opacity:0;pointer-events:none;transition:opacity .3s}
   #sheetBg.open{opacity:1;pointer-events:auto}
-  #sheet{position:fixed;z-index:9;left:50%;top:50%;width:min(360px,92vw);max-height:88vh;max-height:88dvh;
+  #sheet{position:fixed;z-index:9;left:50%;top:50%;width:min(344px,88vw);max-height:86vh;max-height:86dvh;
     display:flex;flex-direction:column;overflow:hidden;
-    transform:translate(-50%,-50%) scale(.92);opacity:0;pointer-events:none;
-    transition:transform .3s cubic-bezier(.2,1.3,.4,1),opacity .22s;
-    background:linear-gradient(165deg,rgba(23,52,70,.97),rgba(7,22,33,.98));
-    border:1px solid rgba(140,200,235,.28);border-radius:20px;
+    transform:translate(-50%,-50%) scale(.9);opacity:0;pointer-events:none;
+    transition:transform .32s cubic-bezier(.2,1.4,.4,1),opacity .25s;
+    background:linear-gradient(165deg,rgba(23,52,70,.96),rgba(7,22,33,.97));
+    border:1px solid rgba(140,200,235,.28);border-radius:24px;
     box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 40px rgba(64,140,190,.15),inset 0 1px 0 rgba(255,255,255,.12);
-    padding:16px 14px 14px;box-sizing:border-box}
+    padding:18px 16px 16px;box-sizing:border-box}
   #sheet.open{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
-  .sheet-head{display:flex;align-items:center;justify-content:space-between;margin:0 2px 10px;flex:0 0 auto}
-  .sheet-title{color:#dceefb;font-size:16px;letter-spacing:.3em;font-weight:600}
-  .sheet-title small{display:block;font-size:9px;letter-spacing:.18em;color:rgba(220,238,251,.45);
-    font-weight:400;margin-top:2px}
-  #sheetX{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.16);
-    background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);font-size:13px;cursor:pointer;flex:0 0 auto}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;margin:0 2px 12px;flex:0 0 auto}
+  .sheet-title{color:#dceefb;font-size:15px;letter-spacing:.25em;font-weight:600}
+  .sheet-title small{display:block;font-size:10px;letter-spacing:.1em;color:rgba(220,238,251,.45);font-weight:400;margin-top:3px}
+  #sheetX{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);font-size:14px;cursor:pointer;flex:0 0 auto}
   #sheetX:active{transform:scale(.9)}
   .sheet-scroll{overflow-y:auto;flex:1 1 auto;min-height:0;margin:0 -4px;padding:0 4px}
-  /* 水情 */
-  .water-sec{margin-bottom:12px;padding:10px 12px;border-radius:14px;
-    background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}
-  .water-sec h4{margin:0 0 6px;font-size:11px;letter-spacing:.3em;color:rgba(220,238,251,.55);font-weight:600}
-  .wrow{display:flex;align-items:baseline;justify-content:space-between;padding:3.5px 0;
-    border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
-  .wrow:last-of-type{border-bottom:none}
-  .wrow .wl{color:rgba(220,238,251,.6)}
-  .wrow .wv{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
-  .wrow .wv.good{color:#7dffab}.wrow .wv.warn{color:#ffd166}.wrow .wv.bad{color:#ff8a7a}
-  #wAdvice{margin-top:6px;font-size:11px;color:#e0b25a;font-weight:600;line-height:1.5}
-  /* 3x3 按钮 */
-  .sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-    min-height:76px;padding:10px 4px;border-radius:14px;cursor:pointer;color:#fff;
-    border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.055);
+  .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:14px 6px 12px;border-radius:18px;cursor:pointer;color:#fff;border:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.055);
     transition:transform .12s,background .2s,border-color .2s,box-shadow .2s}
-  .tile:active{transform:scale(.94)}
-  .tile .t-name{font-size:14px;font-weight:600;letter-spacing:.06em}
-  .tile .t-sub{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.03em;min-height:14px}
+  .tile:active{transform:scale(.95)}
+  .tile .t-ico{font-size:30px;line-height:1.2;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
+  .tile .t-name{font-size:14px;font-weight:600;letter-spacing:.08em}
+  .tile .t-sub{font-size:10px;color:rgba(255,255,255,.48);letter-spacing:.04em}
   .tile.toggle.on{background:rgba(56,140,200,.2);border-color:rgba(125,211,252,.6);
-    box-shadow:0 0 16px rgba(80,170,230,.25),inset 0 1px 0 rgba(255,255,255,.1)}
-  .tile.toggle.on .t-sub{color:rgba(165,220,250,.9)}
-  .tile.danger{border-color:rgba(255,120,90,.4)}
+    box-shadow:0 0 18px rgba(80,170,230,.25),inset 0 1px 0 rgba(255,255,255,.1)}
+  .tile.toggle.on .t-sub{color:rgba(165,220,250,.85)}
+  .tile.wide{grid-column:1/-1;flex-direction:row;justify-content:center;gap:10px;padding:12px}
+  .tile.wide .t-ico{font-size:22px}
+  .tile.danger{border-color:rgba(255,120,90,.45)}
   .tile.danger .t-name{color:#ffb3a0}
-  .tile.danger.armed{background:rgba(200,60,40,.25);border-color:#ff6a55;
-    box-shadow:0 0 16px rgba(255,80,50,.4)}
-  .sheet-foot{flex:0 0 auto;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);
-    font-size:10px;color:rgba(255,255,255,.38);line-height:1.7;text-align:center;letter-spacing:.05em}
+  .sheet-foot{flex:0 0 auto;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);
+    font-size:10px;color:rgba(255,255,255,.4);line-height:1.7}
   #loading{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
     background:#04141d;color:#9fd8ff;font-size:15px;letter-spacing:.2em;transition:opacity .8s}
 </style>
@@ -83,40 +96,42 @@
 </script>
 </head>
 <body>
-<div id="loading">正在注水</div>
+<div id="loading">正在注水…</div>
+<div id="dash">
+  <button id="dashPill" aria-label="水状态"><span class="dot" id="dQ"></span><span class="dot" id="dO"></span><span class="dot" id="dW"></span><span id="dashMini">--</span></button>
+  <div id="dashPanel">
+    <div class="drow"><span class="lab">水质</span><span class="dbar"><i id="qFill"></i></span><span class="dval" id="qVal">--</span></div>
+    <div class="drow"><span class="lab">氧气</span><span class="dbar"><i id="oFill"></i></span><span class="dval" id="oVal">--</span></div>
+    <div class="drow"><span class="lab">废物</span><span class="dbar"><i id="wFill"></i></span><span class="dval" id="wVal">--</span></div>
+    <div class="meta"><span id="fishVal">🐟 --</span><span id="dayVal">☀️</span><span id="filterVal">🌀关</span></div>
+    <div id="advice"></div>
+  </div>
+</div>
 <div id="alert"></div>
 <div id="toast"></div>
 <div id="credit">引擎改编自 joewolly/aquarium · 乌龟模型 CC-BY-SA 4.0 ©lucas B. · 锦鲤模型 CC-BY 4.0 ©FlanCasero</div>
+<div id="hint">点鱼缸投食 · 长按开工具栏 · 拖动旋转 · 双指缩放</div>
 <div id="sheetBg"></div>
-<div id="sheet" role="dialog" aria-label="鱼缸工具箱">
+<div id="sheet" role="dialog" aria-label="鱼缸管家">
   <div class="sheet-head">
-    <div class="sheet-title">鱼缸工具箱<small>AQUARIUM TOOLBOX</small></div>
+    <div class="sheet-title">🐢 鱼缸管家<small>AQUARIUM CONTROLS</small></div>
     <button id="sheetX" aria-label="关闭">✕</button>
   </div>
   <div class="sheet-scroll">
-    <div class="water-sec">
-      <h4>水情</h4>
-      <div class="wrow"><span class="wl">水质</span><span class="wv" id="wqV">--</span></div>
-      <div class="wrow"><span class="wl">氧气</span><span class="wv" id="woV">--</span></div>
-      <div class="wrow"><span class="wl">废物</span><span class="wv" id="wwV">--</span></div>
-      <div class="wrow"><span class="wl">鱼只</span><span class="wv" id="wfV">--</span></div>
-      <div class="wrow"><span class="wl">昼夜</span><span class="wv" id="wdV">--</span></div>
-      <div class="wrow"><span class="wl">过滤</span><span class="wv" id="wflV">--</span></div>
-      <div id="wAdvice"></div>
-    </div>
     <div class="sheet-grid">
-      <button class="tile" id="bFeed"><span class="t-name">投食</span><span class="t-sub">撒一把饲料</span></button>
-      <button class="tile" id="bWater"><span class="t-name">换水</span><span class="t-sub">废物减半</span></button>
-      <button class="tile toggle" id="bFilter"><span class="t-name">过滤</span><span class="t-sub" id="filterSub">已关闭</span></button>
-      <button class="tile" id="bFish"><span class="t-name">加鱼</span><span class="t-sub" id="fishSub">--</span></button>
-      <button class="tile toggle on" id="bDay"><span class="t-name">昼夜</span><span class="t-sub" id="daySub">白天</span></button>
-      <button class="tile toggle on" id="bFx"><span class="t-name">特效</span><span class="t-sub" id="fxSub">已开启</span></button>
-      <button class="tile" id="bTrim"><span class="t-name">修剪水草</span><span class="t-sub">防止疯长</span></button>
-      <button class="tile danger" id="bFrenzy"><span class="t-name">乌龟狂暴</span><span class="t-sub" id="frenzySub">危险 20 秒</span></button>
-      <button class="tile danger" id="bReset"><span class="t-name">重置鱼缸</span><span class="t-sub">清空存档</span></button>
+      <button class="tile" id="bFeed"><span class="t-ico">🍤</span><span class="t-name">投食</span><span class="t-sub">撒一把饲料</span></button>
+      <button class="tile" id="bFish"><span class="t-ico">🐟</span><span class="t-name">加鱼</span><span class="t-sub" id="fishSub">--</span></button>
+      <button class="tile" id="bWater"><span class="t-ico">💧</span><span class="t-name">换水</span><span class="t-sub">废物减半</span></button>
+      <button class="tile toggle" id="bFilter"><span class="t-ico">🌀</span><span class="t-name">过滤</span><span class="t-sub" id="filterSub">已关闭</span></button>
+      <button class="tile toggle on" id="bDay"><span class="t-ico">🌗</span><span class="t-name">昼夜</span><span class="t-sub" id="daySub">白天</span></button>
+      <button class="tile toggle on" id="bFx"><span class="t-ico">✨</span><span class="t-name">特效</span><span class="t-sub" id="fxSub">电影级已开</span></button>
+      <button class="tile" id="bTrim"><span class="t-ico">🌿</span><span class="t-name">修剪水草</span><span class="t-sub">防疯长</span></button>
+      <button class="tile danger" id="bFrenzy"><span class="t-ico">🦖</span><span class="t-name">乌龟狂暴</span><span class="t-sub">危险，20秒</span></button>
+      <button class="tile wide" id="bFs"><span class="t-ico">⛶</span><span class="t-name">全屏</span><span class="t-sub">沉浸观赏</span></button>
+      <button class="tile wide danger" id="bReset"><span class="t-ico">↺</span><span class="t-name">重置鱼缸</span><span class="t-sub">清空存档重开</span></button>
     </div>
   </div>
-  <div class="sheet-foot">投食 → 鱼吃 → 产废物 → 水质下降 · 水草 + 过滤净化 · 鱼吃饱水质好会在水草边产卵</div>
+  <div class="sheet-foot">💡 投食→鱼吃→产废物→水质下降；水草+过滤净化；<br>鱼吃饱、水质好会在水草边产卵，颜色会遗传。</div>
 </div>
 <script type="module" src="./js/tank.js"></script>
 </body>
