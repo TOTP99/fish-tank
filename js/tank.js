@@ -103,6 +103,8 @@ controls.enableDamping=true; controls.dampingFactor=.06;
 controls.minDistance=16; controls.maxDistance=75;
 controls.maxPolarAngle=1.45; controls.minPolarAngle=.12;
 controls.enablePan=false;
+renderer.domElement.style.touchAction='none';renderer.domElement.style.webkitTouchCallout='none';
+controls.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_ROTATE};
 controls.autoRotate=true; controls.autoRotateSpeed=.45;
 let idleT=0;
 controls.addEventListener('start',()=>{controls.autoRotate=false;idleT=0;});
@@ -1295,7 +1297,6 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   idleT=0;lpFired=false;
   pdown={x:e.clientX,y:e.clientY,t:performance.now()};
   $('dash').classList.remove('open');
-  try{renderer.domElement.setPointerCapture(e.pointerId);}catch(_){}
   clearTimeout(lpTimer);
   lpTimer=setTimeout(()=>{lpFired=true;openSheet();},LP_MS);
 });
