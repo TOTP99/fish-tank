@@ -50,9 +50,11 @@
     background:rgba(20,80,60,.92);padding:8px 16px;border-radius:12px;
     opacity:0;transition:opacity .25s,transform .25s}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
-  #credit{position:fixed;left:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;color:rgba(255,255,255,.42);
-    font-size:10px;line-height:1.5;max-width:60vw;pointer-events:none;display:none}
-  #credit.show{display:block}
+  #credit{position:fixed;left:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;
+    color:#d9a441;font-size:11px;letter-spacing:.15em;cursor:pointer;user-select:none;
+    text-shadow:0 1px 3px rgba(0,0,0,.6);max-width:70vw;line-height:1.6}
+  #credit .full{display:none;color:rgba(255,255,255,.5);letter-spacing:0;font-size:10px}
+  #credit.show .full{display:inline}
   #hint{position:fixed;bottom:calc(30px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:5;
     color:rgba(255,255,255,.85);font-size:12px;background:rgba(2,20,30,.45);padding:6px 14px;border-radius:999px;
     transition:opacity 1.5s;pointer-events:none;white-space:nowrap}
@@ -79,20 +81,33 @@
   .sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 6px;justify-items:center;padding:2px 0 4px}
   /* 3×3 小圆按钮：圆形图标 + 下方文字 */
   .tile{display:flex;flex-direction:column;align-items:center;gap:6px;
-    width:78px;padding:0;border:none;background:transparent;cursor:pointer;color:#fff;
-    transition:transform .12s}
-  .tile:active{transform:scale(.9)}
+    width:78px;padding:0;border:none;background:transparent;cursor:pointer;color:#fff}
+  /* 遥控器式立体鼓包键: 径向高光穹顶 + 6px 实色侧壁显高度; 按下侧壁压到1px并下沉5px, 明显凹陷, 松手弹回 */
   .tile .t-ico{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-size:18px;font-weight:700;letter-spacing:.05em;line-height:1;
-    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
-    box-shadow:0 4px 14px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.1);
-    transition:background .2s,border-color .2s,box-shadow .2s}
+    background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.30),rgba(255,255,255,.07) 52%,rgba(0,0,0,.30) 100%);
+    border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 6px 0 rgba(0,0,0,.38),0 12px 20px rgba(0,0,0,.42),
+      inset 0 2px 4px rgba(255,255,255,.30),inset 0 -4px 8px rgba(0,0,0,.32);
+    transition:transform .09s,box-shadow .09s,background .15s}
+  .tile:active .t-ico{transform:translateY(5px);
+    background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.10),rgba(255,255,255,.02) 52%,rgba(0,0,0,.48) 100%);
+    box-shadow:0 1px 0 rgba(0,0,0,.38),0 4px 10px rgba(0,0,0,.42),
+      inset 0 3px 10px rgba(0,0,0,.50),inset 0 -1px 3px rgba(0,0,0,.30)}
   .tile .t-name{font-size:11px;font-weight:600;letter-spacing:.06em;color:rgba(255,255,255,.88)}
   .tile .t-sub{display:none}
-  .tile.toggle.on .t-ico{background:rgba(56,140,200,.35);border-color:rgba(125,211,252,.65);
-    box-shadow:0 0 16px rgba(80,170,230,.35),inset 0 1px 0 rgba(255,255,255,.12)}
+  .tile.toggle.on .t-ico{background:radial-gradient(circle at 50% 30%,rgba(150,220,255,.50),rgba(56,140,200,.35) 55%,rgba(10,40,70,.50) 100%);
+    border-color:rgba(125,211,252,.65);
+    box-shadow:0 6px 0 rgba(0,20,40,.45),0 0 18px rgba(80,170,230,.40),0 12px 20px rgba(0,0,0,.42),
+      inset 0 2px 4px rgba(255,255,255,.35),inset 0 -4px 8px rgba(0,0,0,.30)}
+  .tile.toggle.on:active .t-ico{transform:translateY(5px);
+    box-shadow:0 1px 0 rgba(0,20,40,.45),0 0 18px rgba(80,170,230,.40),0 4px 10px rgba(0,0,0,.42),
+      inset 0 3px 10px rgba(0,0,0,.50)}
   .tile.toggle.on .t-name{color:#b8e8ff}
-  .tile.danger .t-ico{border-color:rgba(255,120,90,.5);background:rgba(180,50,30,.18)}
+  .tile.danger .t-ico{border-color:rgba(255,120,90,.55);
+    background:radial-gradient(circle at 50% 30%,rgba(255,150,120,.32),rgba(180,50,30,.18) 55%,rgba(60,10,5,.50) 100%)}
+  .tile.danger:active .t-ico{transform:translateY(5px);
+    box-shadow:0 1px 0 rgba(0,0,0,.38),0 4px 10px rgba(0,0,0,.42),inset 0 3px 10px rgba(0,0,0,.50)}
   .tile.danger .t-name{color:#ffb3a0}
   .sheet-foot{flex:0 0 auto;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);
     font-size:10px;color:rgba(255,255,255,.4);line-height:1.7;text-align:center}
@@ -138,7 +153,7 @@ window.addEventListener('error',function(e){
 </div>
 <div id="alert"></div>
 <div id="toast"></div>
-<div id="credit">引擎改编自 joewolly/aquarium · 乌龟模型 CC-BY-SA 4.0 ©lucas B. · 锦鲤模型 CC-BY 4.0 ©FlanCasero</div>
+<div id="credit">TP制作<span class="full"><br>引擎改编自 joewolly/aquarium · 乌龟模型 CC-BY-SA 4.0 ©lucas B. · 锦鲤模型 CC-BY 4.0 ©FlanCasero</span></div>
 <div id="hint">点水面投食 · 点水草互动 · 点工具箱/长按开管家 · 拖动旋转</div>
 <div id="sheetBg"></div>
 <div id="sheet" role="dialog" aria-label="鱼缸管家">
