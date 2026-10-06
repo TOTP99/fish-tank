@@ -60,7 +60,7 @@ function mixHex(h1,h2,bias){
   const r=((p>>16)&255)*(1-u)+((q>>16)&255)*u,
         g=((p>>8)&255)*(1-u)+((q>>8)&255)*u,
         b=(p&255)*(1-u)+(q&255)*u;
-  return '#'+((((r|0)<<16)|((g|0)<<8)|(b|0)).toString(16).padStart(6,'0');
+  return '#'+(((r|0)<<16)|((g|0)<<8)|(b|0)).toString(16).padStart(6,'0');
 }
 function mixHue(a,b){ // 颜色遗传
   const hue={light:mixHex(a.light,b.light),dark:mixHex(a.dark,b.dark)};
@@ -910,6 +910,29 @@ function updateEco(dt){
   quality+=(target-quality)*Math.min(1,dt*0.6);
   for(let i=fish.length-1;i>=0;i--)if(!fish[i].alive)removeFish(fish[i]); // 清理死鱼
 }
+// TP 铜牌商标: 底柜正面中央, 点击打开鱼缸管家(无手势后的唯一入口)
+const plaque=(()=>{
+  const c=document.createElement('canvas');c.width=320;c.height=96;
+  const x=c.getContext('2d');
+  const gr=x.createLinearGradient(0,0,0,96);
+  gr.addColorStop(0,'#7a3f16');gr.addColorStop(.5,'#d99a5c');gr.addColorStop(1,'#8a4b1f');
+  x.fillStyle=gr;x.fillRect(0,0,320,96);
+  x.strokeStyle='rgba(50,25,5,.9)';x.lineWidth=6;x.strokeRect(4,4,312,88);
+  x.fillStyle='#2a1505';x.font='700 46px Georgia,serif';
+  x.textAlign='center';x.textBaseline='middle';x.fillText('TP制作',160,52);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(4.4,1.7,.2),
+    new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(c),
+      metalness:.65,roughness:.35,emissive:0x2a1205,emissiveIntensity:.5}));
+  m.position.set(0,-3.2,(TANK.d+2.4)/2+.12);
+  scene.add(m);return m;
+})();
+const plaqueRay=new THREE.Raycaster(),plaqueNdc=new THREE.Vector2();
+function plaqueHit(e){
+  plaqueNdc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  plaqueRay.setFromCamera(plaqueNdc,camera);
+  return plaqueRay.intersectObject(plaque,false).length>0;
+}
+// 手势: 点按喂食 · 长按开管家 · 拖动旋转 · 双指缩放 · 10秒闲置自动环绕(点铜牌只开管家不喂食)
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
 let pdown=null,lpTimer=null,lpFired=false;
 const TAP_LIM=8,LP_LIM=14,LP_MS=550;
@@ -922,7 +945,10 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   lpTimer=setTimeout(()=>{lpFired=true;openSheet();},LP_MS);
 });
 renderer.domElement.addEventListener('pointermove',e=>{
-  if(!pdown||lpFired)return;
+  if(!pdown||lpFired){
+    renderer.domElement.style.cursor=plaqueHit(e)?'pointer':'default';
+    return;
+  }
   if(Math.hypot(e.clientX-pdown.x,e.clientY-pdown.y)>LP_LIM)clearTimeout(lpTimer);
 });
 const endPointer=e=>{
@@ -934,6 +960,7 @@ const endPointer=e=>{
   pdown=null;lpFired=false;
   if(wasLp)return;
   if(moved<TAP_LIM&&dtMs<600){
+    if(plaqueHit(e)){openSheet();return;}
     ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
     ray.setFromCamera(ndc,camera);
     const t=(TANK.water-4-ray.ray.origin.y)/ray.ray.direction.y;
@@ -1177,6 +1204,7 @@ const _goTimer=setInterval(()=>{
 },300);
 setTimeout(()=>{clearInterval(_goTimer);syncFishSub();},8000); // 模型失败时兜底
 syncFishSub();
-window.__tank={camera,controls,scene,turtle,fish,eggs,lampLight,
+window.__tank={camera,controls,scene,turtle,fish,eggs,plaque,lampLight,
   eco:()=>({waste,quality,oxygen,filterOn,dayTarget})};
+clearTimeout(window.__bootT);
 tick();
