@@ -97,6 +97,16 @@
 </head>
 <body>
 <div id="loading">正在注水…</div>
+<script>
+window.__bootT=setTimeout(function(){
+  var l=document.getElementById('loading');
+  if(l&&!window.__tank)l.innerHTML='加载失败<br><small>1. 请用 HTTP 托管(如 GitHub Pages)打开，file:// 直接打不开<br>2. 需要联网加载 three.js CDN</small>';
+},15000);
+window.addEventListener('error',function(e){
+  var l=document.getElementById('loading');
+  if(l&&!window.__tank)l.innerHTML='加载出错<br><small>'+(e.message||'未知错误')+'</small>';
+});
+</script>
 <div id="dash">
   <button id="dashPill" aria-label="水状态"><span class="dot" id="dQ"></span><span class="dot" id="dO"></span><span class="dot" id="dW"></span><span id="dashMini">--</span></button>
   <div id="dashPanel">
@@ -110,7 +120,7 @@
 <div id="alert"></div>
 <div id="toast"></div>
 <div id="credit">引擎改编自 joewolly/aquarium · 乌龟模型 CC-BY-SA 4.0 ©lucas B. · 锦鲤模型 CC-BY 4.0 ©FlanCasero</div>
-<div id="hint">点鱼缸投食 · 长按开工具栏 · 拖动旋转 · 双指缩放</div>
+<div id="hint">点鱼缸投食 · 长按/铜牌开鱼缸管家 · 拖动旋转 · 双指缩放</div>
 <div id="sheetBg"></div>
 <div id="sheet" role="dialog" aria-label="鱼缸管家">
   <div class="sheet-head">
