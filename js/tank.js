@@ -103,8 +103,6 @@ controls.enableDamping=true; controls.dampingFactor=.06;
 controls.minDistance=16; controls.maxDistance=75;
 controls.maxPolarAngle=1.45; controls.minPolarAngle=.12;
 controls.enablePan=false;
-renderer.domElement.style.touchAction='none';renderer.domElement.style.webkitTouchCallout='none';
-controls.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_ROTATE};
 controls.autoRotate=true; controls.autoRotateSpeed=.45;
 let idleT=0;
 controls.addEventListener('start',()=>{controls.autoRotate=false;idleT=0;});
@@ -921,13 +919,13 @@ function updateFish(f,dt,t){
 
   // 穿梭水草: 摇摆 + 轻微减速; 饿了会啃草
   const cover=plantCoverAt(P.x,P.z);
+  const spd=f.vel.length();
   if(cover>0.15){
     plantSwayFrom(P.x,P.z,spd*0.08*dt*60);
     if(f.mode!=='flee')f.vel.multiplyScalar(1-cover*0.12*Math.min(1,dt*8));
   }
   fishGrazePlant(f,dt);
 
-  const spd=f.vel.length();
   if(f.U2){
     f.U2.uPh.value+=dt*f.g.freq*(.4+spd*.5);
     f.U2.uAmp.value=lerp(f.U2.uAmp.value,.12+Math.min(spd,4)*.09,dt*2);
@@ -1297,6 +1295,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
   idleT=0;lpFired=false;
   pdown={x:e.clientX,y:e.clientY,t:performance.now()};
   $('dash').classList.remove('open');
+  try{renderer.domElement.setPointerCapture(e.pointerId);}catch(_){}
   clearTimeout(lpTimer);
   lpTimer=setTimeout(()=>{lpFired=true;openSheet();},LP_MS);
 });
