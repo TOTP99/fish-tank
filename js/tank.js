@@ -225,7 +225,7 @@ const hemi=new THREE.HemisphereLight(0x9fd8ff,0x1c2a20,.9);
 scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff2dd,3.4);
 sun.position.set(6,30,10);
-sun.castShadow=true;
+sun.castShadow=!IS_MOBILE;
 sun.shadow.camera.left=-26;sun.shadow.camera.right=26;
 sun.shadow.camera.top=26;sun.shadow.camera.bottom=-26;
 sun.shadow.mapSize.set(2048,2048);
@@ -236,7 +236,7 @@ const fillLights=[];
 for(const [fx,fy,fz] of [[-12,22,-6],[8,22,-6],[-12,22,6],[8,22,6],[-2,24,0]]){
   const pl=new THREE.PointLight(0xfff0e0,1.5,42,1.5);
   pl.position.set(fx,fy,fz);
-  scene.add(pl);
+  if(!IS_MOBILE||fillLights.length<2)scene.add(pl);
   fillLights.push(pl);
 }
 
@@ -313,7 +313,8 @@ const surf=new THREE.Mesh(new THREE.PlaneGeometry(46,28,1,1).rotateX(Math.PI/2),
 surf.position.y=TANK.water;scene.add(surf);
 // thin top skin: gentle waves, nearly invisible from above so it never blocks the view
 const topSurf=new THREE.Mesh(new THREE.PlaneGeometry(TANK.w,TANK.d,48,24),
-  new THREE.MeshPhongMaterial({color:0x2e7d9e,transparent:true,opacity:.18,
+  IS_MOBILE?new THREE.MeshBasicMaterial({color:0x2e7d9e,transparent:true,opacity:.18,depthWrite:false})
+  :new THREE.MeshPhongMaterial({color:0x2e7d9e,transparent:true,opacity:.18,
     shininess:60,specular:0x335566,depthWrite:false}));
 topSurf.rotation.x=-Math.PI/2;topSurf.position.y=TANK.water+.02;
 topSurf.material.onBeforeCompile=s=>{
@@ -362,7 +363,8 @@ function updateRays(t,dt){
 // ---------- 玻璃缸 + 木框 + 底柜
 {
   // clear glass: high transmission, both faces
-  const glassMat=new THREE.MeshPhysicalMaterial({
+  const glassMat=IS_MOBILE?new THREE.MeshBasicMaterial({color:0xeaf6ff,transparent:true,opacity:.07,
+    side:THREE.DoubleSide,depthWrite:false}):new THREE.MeshPhysicalMaterial({
     color:0xeaf6ff,transparent:true,opacity:.16,
     roughness:.03,metalness:0,
     transmission:IS_MOBILE?0:.92,thickness:.35,ior:1.45, // 手机关透射(省掉整场景第二遍渲染)
@@ -750,7 +752,7 @@ const lampGlow=(()=>{
   scene.add(fixture);
   lampLight.position.set(RAMP_B.x,26.4,RAMP_B.z);
   lampLight.target.position.set(RAMP_B.x,RAMP_B.y,RAMP_B.z);
-  scene.add(lampLight,lampLight.target);
+  if(!IS_MOBILE)scene.add(lampLight,lampLight.target);
 }
 
 // ---------- 程序化鱼: 基因组 → 建模
@@ -996,7 +998,7 @@ function newTarget(f){
   }
   f.tt=R(3.5,8);
 }
-function removeFish(f){scene.remove(f.grp);f.grp.traverse(o=>{o.geometry?.dispose?.();if(o.material){o.material.map?.dispose?.();o.material.dispose?.()}});
+function removeFish(f){scene.remove(f.grp);f.grp.traverse(o=>{o.geometry?.dispose?.();if(o.material&&!EYE_IRIS.includes(o.material)&&o.material!==EYE_PUPIL){if(o.material.map&&!Object.values(_finTexCache).includes(o.material.map))o.material.map.dispose?.();o.material.dispose?.()}});
   fish.splice(fish.indexOf(f),1);}
 // 生成器公共收尾: 建模 → 入场 → 登记
 function finishFish(g,eco,pos){
@@ -2196,7 +2198,7 @@ const _swS=$('bSound');if(_swS){
 try{const _hd=localStorage.getItem('tank_hd');if(_hd!==null)View.hdOn=_hd!=='0';}catch(e){}
 const _swH=$('bHD');if(_swH){
   _swH.classList.toggle('on',View.hdOn);
-  const applyHD=()=>renderer.setPixelRatio(View.hdOn?Math.min(devicePixelRatio,2):1);
+  const applyHD=()=>{const r=View.hdOn?Math.min(devicePixelRatio,2):1;renderer.setPixelRatio(r);composer.setPixelRatio(r);composer.setSize(innerWidth,innerHeight);};
   applyHD();
   _swH.onclick=()=>{View.hdOn=!View.hdOn;_swH.classList.toggle('on',View.hdOn);applyHD();
     try{localStorage.setItem('tank_hd',View.hdOn?'1':'0');}catch(e){}};
