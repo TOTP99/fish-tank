@@ -342,7 +342,7 @@ const rays=[];
 {
   const rayMat=new THREE.MeshBasicMaterial({map:rayTex,transparent:true,depthWrite:false,
     blending:THREE.AdditiveBlending,side:THREE.DoubleSide,opacity:.5});
-  for(let i=0;i<6;i++){
+  for(let i=0;i<3;i++){
     const w=R(2.5,5);
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,20),rayMat.clone());
     m.position.set(R(-14,4),TANK.water-9.5,R(-6,6));
@@ -1003,7 +1003,7 @@ function finishFish(g,eco,pos){
   const {grp,U2,bodyMat}=buildFish(g);
   grp.position.copy(pos||new THREE.Vector3(R(-12,0),R(3,10),R(-5,5)));
   const f=addFishEntry(grp,U2,g,Object.assign({bodyMat,
-    hunger:eco.stage==='baby'?0.4:R(.35,.6),age:eco.stage==='baby'?0:R(20,60)},eco));
+    hunger:eco.stage==='baby'?0.55:R(.35,.6),age:eco.stage==='baby'?0:R(20,60)},eco));
   f.baseEmissive=bodyMat.emissive.clone();
   return f;
 }
@@ -1115,7 +1115,7 @@ function spawnFishByBreed(breed,stage,pos){
 }
 function fishDie(f,cause){
   if(!f.alive)return;f.alive=false;
-  Eco.waste=Math.min(1,Eco.waste+(f.stage==='adult'?0.04:0.05));
+  Eco.waste=Math.min(1,Eco.waste+(f.stage==='adult'?0.025:0.03));
   dropFood(f.grp.position.x,f.grp.position.z,1,true); // 尸体(乌龟会清理)
   if(cause==='starve')toast('有鱼饿死了! 快投食');
   else if(cause==='env')toast('水质恶化致死! 快换水');
@@ -1161,8 +1161,8 @@ function updateFish(f,dt,t){
   f.age+=dt;f.breedCD-=dt;
   if(f.biteFlash>0)f.biteFlash=Math.max(0,f.biteFlash-dt);
   // 代谢
-  f.hunger=Math.max(0,f.hunger-dt*(adult?0.011:0.03));
-  Eco.waste=Math.min(1,Eco.waste+dt*(adult?0.0016:0.0012));
+  f.hunger=Math.max(0,f.hunger-dt*(adult?0.011:0.02));
+  Eco.waste=Math.min(1,Eco.waste+dt*(adult?0.0009:0.0006));
   Eco.oxygen=Math.max(0,Eco.oxygen-dt*(adult?0.0042:0.0038));
   if(!adult&&f.age>(Eco.oxygen>0.55?16:20)){
     f.stage='adult';f.grp.scale.multiplyScalar(2.1);f.g.speed*=.9;
@@ -1747,7 +1747,7 @@ function updateTurtle(dt,t){
 // ---------- 微粒与气泡
 const moteGeo=new THREE.BufferGeometry();
 {
-  const N=300,pos=new Float32Array(N*3);
+  const N=90,pos=new Float32Array(N*3);
   for(let i=0;i<N;i++){
     pos[i*3]=R(-17,17);pos[i*3+1]=R(0,17);pos[i*3+2]=R(-8.5,8.5);
   }
@@ -1818,7 +1818,7 @@ function updateFood(dt,t){
     }else{
       f.userData.age+=dt;
       if(f.userData.age>12){ // 烂掉 → 废物
-        Eco.waste=Math.min(1,Eco.waste+(f.userData.corpse?0.05:0.02));
+        Eco.waste=Math.min(1,Eco.waste+(f.userData.corpse?0.03:0.01));
         scene.remove(f);continue;
       }
       if(f.userData.age>6&&!f.userData.corpse){f.material=rotMat;} // 残饵变色
@@ -1885,11 +1885,14 @@ function updateEco(dt){
   }else{
     Eco.oxygen=clamp(Eco.oxygen+(Eco.dayNight>0.5?0.008:-0.004)*dt,0,1);
   }
-  const n=fish.filter(f=>f.alive).length;
-  if(n>6)Eco.waste=Math.min(1,Eco.waste+0.002*(n-6)*dt); // 过密加剧污染
+  // 过密按"有效鱼数"算: 幼鱼只算半条, 且惩罚减半(原先每多一条鱼直接-3%水质, 一次孵2~3条就掉近10%)
+  let nA=0,nB=0;for(const f of fish)if(f.alive){if(f.stage==='adult')nA++;else nB++;}
+  const n=nA+nB*0.5;
+  if(n>10)Eco.waste=Math.min(1,Eco.waste+0.0005*(n-10)*dt); // 过密加剧污染
   if(Eco.dayNight<0.5)Eco.oxygen=Math.max(0,Eco.oxygen-0.004*dt); // 夜晚耗氧
-  const target=clamp(1-Eco.waste*0.9-Math.max(0,n-6)*0.03,0,1);
-  Eco.quality+=(target-Eco.quality)*Math.min(1,dt*0.6);
+  const target=clamp(1-Eco.waste*0.9-Math.max(0,n-10)*0.008,0,1);
+  // 水质下降比回升慢: 掉得慢一点, 给过滤/换水/水草留出反应时间
+  Eco.quality+=(target-Eco.quality)*Math.min(1,dt*(target<Eco.quality?0.25:0.6));
   // 水质低于 60% 触发自动换水: 改为逐帧平滑换水(原先每1.8秒一次性砍掉70%废物,
   // 雾色/浑浊度/调色uniform瞬间跳变+反复弹toast), 废物降到很低就结束, 结束后冷却20秒
   Eco.autoWaterCD=Math.max(0,Eco.autoWaterCD-dt);
