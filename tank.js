@@ -617,7 +617,7 @@ function updatePlants(dt){
     Eco.waste=Math.max(0,Eco.waste-p.h*p.health*purify*dt);
     Eco.oxygen=clamp(Eco.oxygen+p.h*p.health*(Eco.dayNight>0.5?0.032:-0.006)*dt,0,1);
     if(overgrown)Eco.waste=Math.min(1,Eco.waste+0.0015*dt*p.h);
-    if(Eco.quality<0.3)p.health=Math.max(0.1,p.health-0.03*dt);
+    if(Eco.quality<0.3)p.health=Math.max(0.1,p.health-0.012*dt);
     else p.health=Math.min(1,p.health+0.012*dt);
 
     // —— 生长动画: 视觉高度平滑跟随逻辑高度 ——
@@ -684,7 +684,7 @@ function updatePlants(dt){
 }
 function trimPlants(silent){
   let n=0;
-  for(const p of plantClusters)if(p.h>p.baseH*0.7){p.h*=0.62;Eco.waste=Math.min(1,Eco.waste+0.035);n++;p.flash=0.8;p.sway=(p.sway||0)+1.2;}
+  for(const p of plantClusters)if(p.h>p.baseH*0.7){p.h*=0.62;Eco.waste=Math.min(1,Eco.waste+0.012);n++;p.flash=0.8;p.sway=(p.sway||0)+1.2;}
   if(!silent)toast(n?'已修剪 '+n+' 丛水草':'水草还不需要修剪');
   blip(420,0.12,0.09);
 }
@@ -693,7 +693,7 @@ function interactPlant(p){
   if(!p)return false;
   p.flash=1.0;p.sway=(p.sway||0)+1.5;
   if(p.h>p.baseH*1.2){
-    p.h*=0.55;Eco.waste=Math.min(1,Eco.waste+0.03);
+    p.h*=0.55;Eco.waste=Math.min(1,Eco.waste+0.01);
     toast('修剪了这丛水草');blip(400,0.1,0.08);return true;
   }
   if(p.health<0.75){
@@ -1162,16 +1162,16 @@ function updateFish(f,dt,t){
   f.age+=dt;f.breedCD-=dt;
   if(f.biteFlash>0)f.biteFlash=Math.max(0,f.biteFlash-dt);
   // 代谢
-  f.hunger=Math.max(0,f.hunger-dt*(adult?0.011:0.02));
+  f.hunger=Math.max(0,f.hunger-dt*(adult?0.005:0.011)); // 饿得慢: 成鱼约3分钟才见底
   Eco.waste=Math.min(1,Eco.waste+dt*(adult?0.0009:0.0006));
-  Eco.oxygen=Math.max(0,Eco.oxygen-dt*(adult?0.0042:0.0038));
+  Eco.oxygen=Math.max(0,Eco.oxygen-dt*(adult?0.002:0.0018));
   if(!adult&&f.age>(Eco.oxygen>0.55?16:20)){
     f.stage='adult';f.grp.scale.multiplyScalar(2.1);f.g.speed*=.9;
   }
-  if(f.hunger<=0.01){f.starveT+=dt;if(f.starveT>4){fishDie(f,'starve');return;}}
+  if(f.hunger<=0.01){f.starveT+=dt;if(f.starveT>20){fishDie(f,'starve');return;}}
   else f.starveT=0;
-  if(Eco.quality<(adult?0.07:0.13)&&chance(0.05*dt)){fishDie(f,'env');return;}
-  if(Eco.oxygen<(adult?0.05:0.09)&&chance(0.06*dt)){fishDie(f,'env');return;}
+  if(Eco.quality<(adult?0.03:0.06)&&chance(0.03*dt)){fishDie(f,'env');return;}
+  if(Eco.oxygen<(adult?0.02:0.04)&&chance(0.03*dt)){fishDie(f,'env');return;}
 
   // —— 行为优先级: 逃逸 > 抢食 > 求偶 > 巡游 ——
   const T=turtle.grp;
@@ -1881,16 +1881,16 @@ function updateEggs(dt,t){
 
 function updateEco(dt){
   if(Eco.filterOn){
-    Eco.waste=Math.max(0,Eco.waste-0.030*dt);
-    Eco.oxygen=Math.min(1,Eco.oxygen+0.020*dt);
+    Eco.waste=Math.max(0,Eco.waste-0.040*dt);
+    Eco.oxygen=Math.min(1,Eco.oxygen+0.030*dt);
   }else{
-    Eco.oxygen=clamp(Eco.oxygen+(Eco.dayNight>0.5?0.008:-0.004)*dt,0,1);
+    Eco.oxygen=clamp(Eco.oxygen+(Eco.dayNight>0.5?0.008:-0.002)*dt,0,1);
   }
   // 过密按"有效鱼数"算: 幼鱼只算半条, 且惩罚减半(原先每多一条鱼直接-3%水质, 一次孵2~3条就掉近10%)
   let nA=0,nB=0;for(const f of fish)if(f.alive){if(f.stage==='adult')nA++;else nB++;}
   const n=nA+nB*0.5;
   if(n>10)Eco.waste=Math.min(1,Eco.waste+0.0005*(n-10)*dt); // 过密加剧污染
-  if(Eco.dayNight<0.5)Eco.oxygen=Math.max(0,Eco.oxygen-0.004*dt); // 夜晚耗氧
+  if(Eco.dayNight<0.5)Eco.oxygen=Math.max(0,Eco.oxygen-0.002*dt); // 夜晚耗氧
   const target=clamp(1-Eco.waste*0.9-Math.max(0,n-10)*0.008,0,1);
   // 水质下降比回升慢: 掉得慢一点, 给过滤/换水/水草留出反应时间
   Eco.quality+=(target-Eco.quality)*Math.min(1,dt*(target<Eco.quality?0.25:0.6));
@@ -1911,16 +1911,16 @@ function updateEco(dt){
       toast('自动换水完成 水质已满');
     }
   }
-  // 饿死预警自动投喂: 有鱼 hunger<0.12 即投食到最饿的鱼附近(8秒冷却)
+  // 饿死预警自动投喂: 有鱼 hunger<0.3 即投食到最饿的鱼附近(8秒冷却)
   Eco.autoFeedCD=Math.max(0,Eco.autoFeedCD-dt);
   if(Eco.autoFeedCD<=0){
     let hungriest=null;
-    for(const f of fish)if(f.alive&&f.hunger<0.12&&(!hungriest||f.hunger<hungriest.hunger))hungriest=f;
+    for(const f of fish)if(f.alive&&f.hunger<0.3&&(!hungriest||f.hunger<hungriest.hunger))hungriest=f;
     if(hungriest){
       Eco.autoFeedCD=8;
       const hp=hungriest.grp.position;
       dropFood(clamp(hp.x,-15,5),clamp(hp.z,-7,7),3,'fish');
-      toast('有鱼快饿死了，已自动投喂');
+      toast('有鱼饿了，已自动投喂');
     }
   }
   for(let i=fish.length-1;i>=0;i--)if(!fish[i].alive)removeFish(fish[i]); // 清理死鱼

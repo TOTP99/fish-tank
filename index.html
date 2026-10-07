@@ -79,24 +79,21 @@
     background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.30),rgba(255,255,255,.07) 52%,rgba(0,0,0,.30) 100%);
     box-shadow:0 6px 0 rgba(0,0,0,.38),0 12px 20px rgba(0,0,0,.42),
       inset 0 2px 4px rgba(255,255,255,.30),inset 0 -4px 8px rgba(0,0,0,.32);
-    transition:transform .09s,box-shadow .09s,background .15s}
-  /* 遥控器式立体鼓包键: 按下侧壁压到1px并下沉5px, 明显凹陷, 松手弹回 */
-  .tile:active{transform:translateY(5px);
-    background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.10),rgba(255,255,255,.02) 52%,rgba(0,0,0,.48) 100%);
-    box-shadow:0 1px 0 rgba(0,0,0,.38),0 4px 10px rgba(0,0,0,.42),
-      inset 0 3px 10px rgba(0,0,0,.50),inset 0 -1px 3px rgba(0,0,0,.30)}
-  .tile.toggle.on{color:#b8e8ff;
-    background:radial-gradient(circle at 50% 30%,rgba(150,220,255,.50),rgba(56,140,200,.35) 55%,rgba(10,40,70,.50) 100%);
-    border-color:rgba(125,211,252,.65);
-    box-shadow:0 6px 0 rgba(0,20,40,.45),0 0 18px rgba(80,170,230,.40),0 12px 20px rgba(0,0,0,.42),
-      inset 0 2px 4px rgba(255,255,255,.35),inset 0 -4px 8px rgba(0,0,0,.30)}
-  .tile.toggle.on:active{transform:translateY(5px);
-    box-shadow:0 1px 0 rgba(0,20,40,.45),0 0 18px rgba(80,170,230,.40),0 4px 10px rgba(0,0,0,.42),
-      inset 0 3px 10px rgba(0,0,0,.50)}
-  .tile.danger{border-color:rgba(255,120,90,.55);
-    background:radial-gradient(circle at 50% 30%,rgba(255,150,120,.32),rgba(180,50,30,.18) 55%,rgba(60,10,5,.50) 100%)}
-  .tile.danger:active{transform:translateY(5px);
-    box-shadow:0 1px 0 rgba(0,0,0,.38),0 4px 10px rgba(0,0,0,.42),inset 0 3px 10px rgba(0,0,0,.50)}
+    transition:box-shadow .12s,background .12s,color .12s,border-color .12s}
+  /* 颜色规则: 未选中=黄色, 选中(开启)=蓝色, 按下=红色+光晕(不再做下沉/变暗) */
+  .tile{color:#3b2500;border-color:rgba(255,226,120,.9);
+    background:radial-gradient(circle at 50% 30%,rgba(255,240,150,1),rgba(244,184,36,.96) 55%,rgba(150,96,0,.98) 100%);
+    box-shadow:0 6px 0 rgba(0,0,0,.38),0 0 12px rgba(255,200,60,.35),0 12px 20px rgba(0,0,0,.42),
+      inset 0 2px 4px rgba(255,255,255,.45),inset 0 -4px 8px rgba(90,50,0,.35)}
+  .tile.toggle.on{color:#eaf8ff;border-color:rgba(140,215,255,.95);
+    background:radial-gradient(circle at 50% 30%,rgba(170,230,255,1),rgba(46,140,225,.97) 55%,rgba(8,48,110,.98) 100%);
+    box-shadow:0 6px 0 rgba(0,20,40,.45),0 0 16px rgba(80,170,240,.55),0 12px 20px rgba(0,0,0,.42),
+      inset 0 2px 4px rgba(255,255,255,.4),inset 0 -4px 8px rgba(0,20,60,.35)}
+  #sheet .tile.press,#sheet .tile:active,#sheet .tile.toggle.on.press,#sheet .tile.toggle.on:active{
+    color:#fff;border-color:#ff9a90;
+    background:radial-gradient(circle at 50% 30%,rgba(255,150,130,1),rgba(232,36,36,1) 55%,rgba(120,0,0,1) 100%);
+    box-shadow:0 6px 0 rgba(60,0,0,.5),0 0 22px rgba(255,60,50,.95),0 0 44px rgba(255,60,50,.55),0 12px 20px rgba(0,0,0,.42),
+      inset 0 2px 4px rgba(255,255,255,.4),inset 0 -4px 8px rgba(80,0,0,.35)}
   #loading{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
     background:radial-gradient(ellipse at 50% 70%,#0a2a3a 0%,#04141d 70%);transition:opacity .8s;overflow:hidden}
   #loading .logo{font-size:52px;margin-bottom:10px;animation:float 2.4s ease-in-out infinite}
@@ -248,6 +245,13 @@ window.addEventListener('error',function(e){
     <button class="tile toggle on" id="bHD">高清</button>
   </div>
 </div>
-<script type="module" src="./tank.js?v=20261013"></script>
+<script>
+(function(){var g=document.getElementById('sheet');if(!g)return;
+function on(e){var t=e.target.closest&&e.target.closest('.tile');if(!t)return;t.classList.add('press');clearTimeout(t._pt);}
+function off(e){var t=e.target.closest&&e.target.closest('.tile');if(!t)return;clearTimeout(t._pt);t._pt=setTimeout(function(){t.classList.remove('press');},260);}
+g.addEventListener('pointerdown',on);g.addEventListener('pointerup',off);g.addEventListener('pointercancel',off);g.addEventListener('pointerleave',off,true);
+})();
+</script>
+<script type="module" src="./tank.js?v=20261015"></script>
 </body>
 </html>
