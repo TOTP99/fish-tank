@@ -1759,7 +1759,7 @@ const bubMat=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:0,
   transparent:true,opacity:.35,clearcoat:1});
 const bubbles=[];
 const bubbleSrc=[new THREE.Vector3(-13,.2,-5),new THREE.Vector3(-6,.2,6)];
-for(let i=0;i<25;i++){
+for(let i=0;i<10;i++){
   const b=new THREE.Mesh(bubGeo,bubMat),s=bubbleSrc[i%2];
   b.position.set(s.x+R(-.3,.3),R(0,16),s.z+R(-.3,.3));
   b.scale.setScalar(R(.4,1.6));
