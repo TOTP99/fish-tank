@@ -365,7 +365,7 @@ function updateRays(t,dt){
   const glassMat=new THREE.MeshPhysicalMaterial({
     color:0xeaf6ff,transparent:true,opacity:.16,
     roughness:.03,metalness:0,
-    transmission:.92,thickness:.35,ior:1.45,
+    transmission:IS_MOBILE?0:.92,thickness:.35,ior:1.45, // 手机关透射(省掉整场景第二遍渲染)
     side:THREE.DoubleSide,depthWrite:false,
     envMapIntensity:.7
   });
