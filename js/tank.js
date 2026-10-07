@@ -13,8 +13,6 @@ const $=id=>document.getElementById(id);
 const clamp=THREE.MathUtils.clamp, lerp=THREE.MathUtils.lerp;
 // 轻音效(WebAudio 合成, 首次交互后可用)
 // ================= 接口层: 跨域可变状态的唯一归属 =================
-// 未来拆模块时每个对象整体搬入对应文件, 跨域只读/写这里, 不再满天飞全局 let。
-//   Eco→sim.js  Sfx→audio.js  View→world.js  Stats/UI→ui.js  Creatures→creatures.js
 const Eco   = { waste:0.22, quality:0.9, oxygen:0.85, filterOn:true,   // 生态数值
                 dayNight:1, dayTarget:1,                                // 昼夜
                 autoWaterCD:0, autoFeedCD:0, autoFishCD:0, autoTrimCD:0, // 自动任务冷却
@@ -133,15 +131,6 @@ function mixHex(h1,h2,bias){
         b=(p&255)*(1-u)+(q&255)*u;
   return '#'+(((r|0)<<16)|((g|0)<<8)|(b|0)).toString(16).padStart(6,'0');
 }
-function mixHue(a,b){ // 颜色遗传
-  const hue={light:mixHex(a.light,b.light),dark:mixHex(a.dark,b.dark)};
-  if(a.patch||b.patch||chance(.35)){
-    hue.patch=pick(['rgba(255,255,255,.55)','rgba(40,30,20,.4)','rgba(220,60,40,.35)','rgba(255,200,80,.4)']);
-  }
-  if(chance(.12)){const m=pick(PALETTES.slice(3));
-    hue.light=mixHex(hue.light,m.light,.55);hue.dark=mixHex(hue.dark,m.dark,.55);}
-  return hue;
-}
 
 // 鱼缸尺寸(世界单位)
 const TANK={w:36,d:18,h:20.5,water:17};
@@ -180,7 +169,7 @@ controls.addEventListener('start',()=>{controls.autoRotate=false;UI.idleT=0;});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight)});
 
-// ---------- 后期特效链: 渲染→泛光→调色(景深已删, 手机省性能)
+// ---------- 后期: 渲染→泛光→调色
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
 const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.32,.55,.85);
@@ -247,7 +236,7 @@ for(const [fx,fy,fz] of [[-12,22,-6],[8,22,-6],[-12,22,6],[8,22,6],[-2,24,0]]){
   fillLights.push(pl);
 }
 
-// ---------- background: deep-water vertical gradient + exp fog
+// ---------- 背景: 深水渐变 + 指数雾
 {
   const c=document.createElement('canvas');c.width=2;c.height=256;
   const g=c.getContext('2d');
@@ -259,7 +248,7 @@ for(const [fx,fy,fz] of [[-12,22,-6],[8,22,-6],[-12,22,6],[8,22,6],[-2,24,0]]){
 }
 scene.fog=new THREE.FogExp2(0x0d3a4d,.015);
 
-// ---------- sand bed: displaced plane + speckle texture
+// ---------- 沙床: 置换平面 + 斑点纹理
 const sandGeo=new THREE.PlaneGeometry(37,19,110,60);
 sandGeo.rotateX(-Math.PI/2);
 {
@@ -366,7 +355,7 @@ function updateRays(t,dt){
   }
 }
 
-// ---------- glass tank + wooden frame + cabinet (original construction)
+// ---------- 玻璃缸 + 木框 + 底柜
 {
   // clear glass: high transmission, both faces
   const glassMat=new THREE.MeshPhysicalMaterial({
@@ -577,7 +566,6 @@ const SICK_LEAF=new THREE.Color(0x8a7a3a);
     addCluster(cx,cz,RI(3,6),R(1.6,5.2),R(.22,.5));}
   for(let i=0;i<4;i++)addCluster(R(-16,-10),R(-7,7),5,R(7,10.5),R(.5,.8));
 }
-function plantMass(){let m=0;for(const p of plantClusters)m+=p.h*p.health;return m;}
 function plantCoverAt(x,z){ // 藏身值(卵/小鱼躲乌龟)
   let best=0;
   for(const p of plantClusters){
@@ -1374,7 +1362,7 @@ const turtle={grp:null,state:'swim',t:R(20,40),vel:new THREE.Vector3(),target:ne
   hunger:0.35,eatTimer:0,belly:0,baskTimer:R(22,32),breath:1,breathWarned:false,
   frenzy:false,frenzyTimer:0,peaceful:true,sleepPos:new THREE.Vector3()};
 function turtleTarget(){turtle.target.set(R(-15,5),R(2.5,12),R(-7,7));}
-// ---------- 程序化红耳龟 (100% 自有代码, 替代 turtle.glb)
+// ---------- 程序化红耳龟
 // 朝向 +X 为头; 鳍带肩部枢轴, 由 animTurtle() 按状态划水
 function turtleShellTexture(){
   // 红耳龟背甲俯视(按真实标本): 5枚椎盾纵列 + 4对肋盾 + 缘盾环
@@ -2129,7 +2117,6 @@ function updateHUD(dt){
   let msg='';
   if(Eco.quality<0.18)msg='水质危险! 请换水';
   else if(Eco.oxygen<0.2)msg='严重缺氧! 请开过滤';
-  else if(fish.some(f=>f.alive&&f.hunger<0.12))msg='有鱼快饿死了!';
   $('dashPill').classList.toggle('warn',!!msg);
   if(msg){alertEl.textContent=msg;alertEl.classList.add('show');}
   else alertEl.classList.remove('show');
@@ -2183,7 +2170,7 @@ $('bResetT').onclick=()=>{
     location.reload();
   });
 };
-// ---------- 确认弹窗(商用标准: 危险操作二次确认)
+// ---------- 确认弹窗(危险操作二次确认)
 
 function showConfirm(title,desc,onOk){
   $('cfTitle').textContent=title;$('cfDesc').textContent=desc;
@@ -2303,15 +2290,17 @@ function loadGame(){
 window.addEventListener('pagehide',saveGame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
 
-// ---------- go
-spawnEcoFish('comet',PALETTES[0],'adult');   // 开缸: 草金 / 扇尾 / 珍珠
-spawnEcoFish('fantail',PALETTES[1],'adult');
-spawnEcoFish('pearl',PALETTES[2],'adult');
-spawnKoi();spawnKoi();                        // 2 条观赏锦鲤
-spawnNewFish(NEW_SPECIES[0]);spawnNewFish(NEW_SPECIES[1]); // 小丑鱼 / 蓝吊
-spawnNewFish(NEW_SPECIES[2]);spawnNewFish(NEW_SPECIES[4]); // 黄吊 / 麒麟鱼
-// 读档(乌龟为同步程序化建模, 直接读)
-if(loadGame())setTimeout(()=>toast('已恢复上次的鱼缸'),600);
+// ---------- go: 有存档读档, 无存档才刷开缸鱼(防重复加鱼)
+if(loadGame()){
+  setTimeout(()=>toast('已恢复上次的鱼缸'),600);
+}else{
+  spawnEcoFish('comet',PALETTES[0],'adult');   // 草金 / 扇尾 / 珍珠
+  spawnEcoFish('fantail',PALETTES[1],'adult');
+  spawnEcoFish('pearl',PALETTES[2],'adult');
+  spawnKoi();spawnKoi();                        // 2 条观赏锦鲤
+  spawnNewFish(NEW_SPECIES[0]);spawnNewFish(NEW_SPECIES[1]); // 小丑鱼 / 蓝吊
+  spawnNewFish(NEW_SPECIES[2]);spawnNewFish(NEW_SPECIES[4]); // 黄吊 / 麒麟鱼
+}
 
 window.__tank={camera,controls,scene,turtle,fish,food,eggs,lampLight,
   spawnHybridFish,spawnFishByBreed,spawnNewFish,spawnRandomFish,NEW_SPECIES,BREEDS,
