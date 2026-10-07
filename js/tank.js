@@ -2027,7 +2027,24 @@ function applyDayNight(k,dt){
 const clock=new THREE.Clock(),_v=new THREE.Vector3(),_q=new THREE.Quaternion(),_m=new THREE.Matrix4(),
   _up=new THREE.Vector3(0,1,0),_yr=new THREE.Quaternion().setFromAxisAngle(_up,Math.PI/2),_o=new THREE.Vector3();
 
+// 子系统出错时不让整个循环停掉; 左下角显示第一条错误方便定位
+const _errSeen={};
+function safe(name,fn){
+  try{fn();}catch(e){
+    const k=name+':'+(e&&e.message);
+    if(!_errSeen[k]){_errSeen[k]=1;console.error('[tank]',name,e);
+      let el=document.getElementById('errBox');
+      if(!el){el=document.createElement('div');el.id='errBox';
+        el.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99;max-width:70vw;font:10px/1.3 monospace;color:#ffb4a8;background:rgba(0,0,0,.6);padding:4px 6px;border-radius:6px;pointer-events:none';
+        document.body.appendChild(el);}
+      el.textContent='错误['+name+'] '+(e&&e.message)+(e&&e.stack?' @'+String(e.stack).split('\n')[1]:'');}
+  }
+}
 function tick(){
+  try{tickBody();}catch(e){safe('主循环',()=>{throw e;});}
+  requestAnimationFrame(tick);
+}
+function tickBody(){
   const rdt=Math.min(clock.getDelta(),.05),dt=rdt,t=clock.elapsedTime;
   U.uTime.value=t;
   applyDayNight(0,rdt);
@@ -2039,12 +2056,12 @@ function tick(){
   topSurf.material.opacity+=(((aboveWater)?.06:.18)-topSurf.material.opacity)*Math.min(1,rdt*4);
   surf.visible=!aboveWater;
   // 生态更新
-  updatePlants(dt);
-  updateFood(dt,t);
-  updateEggs(dt,t);
-  updateEco(dt);
-  for(const f of fish)updateFish(f,dt,t);
-  updateTurtle(dt,t);animTurtle(dt,t);
+  safe('植物',()=>updatePlants(dt));
+  safe('食物',()=>updateFood(dt,t));
+  safe('鱼卵',()=>updateEggs(dt,t));
+  safe('生态',()=>updateEco(dt));
+  for(const f of fish)safe('鱼',()=>updateFish(f,dt,t));
+  safe('乌龟',()=>{updateTurtle(dt,t);animTurtle(dt,t);});
   for(const b of bubbles){b.position.y+=dt*(1.1+b.scale.x);
     b.position.x+=Math.sin(t*3+b.userData.s*2)*.005;
     if(b.position.y>TANK.water-.3){const s=bubbleSrc[b.userData.s];b.position.set(s.x+R(-.3,.3),.2,s.z+R(-.3,.3))}}
@@ -2064,7 +2081,6 @@ function tick(){
     setTimeout(()=>{const l=$('loading');l.style.opacity=0;setTimeout(()=>l.remove(),900);
       maybeOnboard();
       setTimeout(()=>$('hint').style.opacity=0,9000);},900);}
-  requestAnimationFrame(tick);
 }
 
 // ---------- HUD: toast / 警报 / 水状态仪表盘
