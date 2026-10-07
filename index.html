@@ -71,8 +71,6 @@
     padding:16px 14px 14px;box-sizing:border-box}
   #sheet.open{translate:0 0;opacity:1;pointer-events:auto}
   .sheet-head{display:flex;align-items:center;justify-content:center;margin:0 2px 12px;flex:0 0 auto}
-  .sheet-title{color:#dceefb;font-size:14px;letter-spacing:.2em;font-weight:600}
-  .sheet-title small{display:block;font-size:9px;letter-spacing:.1em;color:rgba(220,238,251,.45);font-weight:400;margin-top:2px}
   .sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px;justify-items:center;padding:2px 0}
   /* 4列小圆按钮 */
   .tile{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;
@@ -99,7 +97,6 @@
     background:radial-gradient(circle at 50% 30%,rgba(255,150,120,.32),rgba(180,50,30,.18) 55%,rgba(60,10,5,.50) 100%)}
   .tile.danger:active{transform:translateY(5px);
     box-shadow:0 1px 0 rgba(0,0,0,.38),0 4px 10px rgba(0,0,0,.42),inset 0 3px 10px rgba(0,0,0,.50)}
-  .tile.danger .t-name{color:#ffb3a0}
   #loading{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
     background:radial-gradient(ellipse at 50% 70%,#0a2a3a 0%,#04141d 70%);transition:opacity .8s;overflow:hidden}
   #loading .logo{font-size:52px;margin-bottom:10px;animation:float 2.4s ease-in-out infinite}
