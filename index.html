@@ -29,8 +29,8 @@
   .dbar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
   .dbar>i{display:block;height:100%;border-radius:3px;transition:width .4s}
   .dval{font-size:10px;color:#eef6f8;width:3em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-  #dash .meta{display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:#eef6f8;font-weight:700}
-  #advice{margin-top:4px;font-size:10px;color:#e0b25a;font-weight:700;line-height:1.4;max-width:180px}
+  #dash .meta{display:flex;justify-content:flex-start;gap:8px;margin-top:5px;font-size:11px;color:#eef6f8;font-weight:700}
+  #advice{font-size:10px;color:#e0b25a;font-weight:700;line-height:1.4}
   /* 工具箱按钮 / 版权开关：与水质同风格的小药丸 */
   .topBtn{display:flex;align-items:center;gap:5px;border:1px solid rgba(120,190,205,.35);
     border-radius:999px;background:rgba(8,18,26,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
@@ -78,35 +78,31 @@
   #sheetX{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.16);
     background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);font-size:13px;cursor:pointer;flex:0 0 auto}
   #sheetX:active{transform:scale(.9)}
-  .sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 6px;justify-items:center;padding:2px 0 4px}
+  .sheet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 6px;justify-items:center;padding:2px 0 4px}
   /* 3×3 小圆按钮：圆形图标 + 下方文字 */
-  .tile{display:flex;flex-direction:column;align-items:center;gap:6px;
-    width:78px;padding:0;border:none;background:transparent;cursor:pointer;color:#fff}
-  /* 遥控器式立体鼓包键: 径向高光穹顶 + 6px 实色侧壁显高度; 按下侧壁压到1px并下沉5px, 明显凹陷, 松手弹回 */
-  .tile .t-ico{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    font-size:18px;font-weight:700;letter-spacing:.05em;line-height:1;
+  .tile{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;
+    padding:0;border:1px solid rgba(255,255,255,.16);cursor:pointer;color:#fff;
+    font-size:14px;font-weight:700;letter-spacing:.12em;text-indent:.12em;line-height:1;
     background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.30),rgba(255,255,255,.07) 52%,rgba(0,0,0,.30) 100%);
-    border:1px solid rgba(255,255,255,.16);
     box-shadow:0 6px 0 rgba(0,0,0,.38),0 12px 20px rgba(0,0,0,.42),
       inset 0 2px 4px rgba(255,255,255,.30),inset 0 -4px 8px rgba(0,0,0,.32);
     transition:transform .09s,box-shadow .09s,background .15s}
-  .tile:active .t-ico{transform:translateY(5px);
+  /* 遥控器式立体鼓包键: 按下侧壁压到1px并下沉5px, 明显凹陷, 松手弹回 */
+  .tile:active{transform:translateY(5px);
     background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.10),rgba(255,255,255,.02) 52%,rgba(0,0,0,.48) 100%);
     box-shadow:0 1px 0 rgba(0,0,0,.38),0 4px 10px rgba(0,0,0,.42),
       inset 0 3px 10px rgba(0,0,0,.50),inset 0 -1px 3px rgba(0,0,0,.30)}
-  .tile .t-name{font-size:11px;font-weight:600;letter-spacing:.06em;color:rgba(255,255,255,.88)}
-  .tile .t-sub{display:none}
-  .tile.toggle.on .t-ico{background:radial-gradient(circle at 50% 30%,rgba(150,220,255,.50),rgba(56,140,200,.35) 55%,rgba(10,40,70,.50) 100%);
+  .tile.toggle.on{color:#b8e8ff;
+    background:radial-gradient(circle at 50% 30%,rgba(150,220,255,.50),rgba(56,140,200,.35) 55%,rgba(10,40,70,.50) 100%);
     border-color:rgba(125,211,252,.65);
     box-shadow:0 6px 0 rgba(0,20,40,.45),0 0 18px rgba(80,170,230,.40),0 12px 20px rgba(0,0,0,.42),
       inset 0 2px 4px rgba(255,255,255,.35),inset 0 -4px 8px rgba(0,0,0,.30)}
-  .tile.toggle.on:active .t-ico{transform:translateY(5px);
+  .tile.toggle.on:active{transform:translateY(5px);
     box-shadow:0 1px 0 rgba(0,20,40,.45),0 0 18px rgba(80,170,230,.40),0 4px 10px rgba(0,0,0,.42),
       inset 0 3px 10px rgba(0,0,0,.50)}
-  .tile.toggle.on .t-name{color:#b8e8ff}
-  .tile.danger .t-ico{border-color:rgba(255,120,90,.55);
+  .tile.danger{border-color:rgba(255,120,90,.55);
     background:radial-gradient(circle at 50% 30%,rgba(255,150,120,.32),rgba(180,50,30,.18) 55%,rgba(60,10,5,.50) 100%)}
-  .tile.danger:active .t-ico{transform:translateY(5px);
+  .tile.danger:active{transform:translateY(5px);
     box-shadow:0 1px 0 rgba(0,0,0,.38),0 4px 10px rgba(0,0,0,.42),inset 0 3px 10px rgba(0,0,0,.50)}
   .tile.danger .t-name{color:#ffb3a0}
   .sheet-foot{flex:0 0 auto;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);
@@ -144,8 +140,7 @@ window.addEventListener('error',function(e){
       <div class="drow"><span class="lab">水质</span><span class="dbar"><i id="qFill"></i></span><span class="dval" id="qVal">--</span></div>
       <div class="drow"><span class="lab">氧气</span><span class="dbar"><i id="oFill"></i></span><span class="dval" id="oVal">--</span></div>
       <div class="drow"><span class="lab">废物</span><span class="dbar"><i id="wFill"></i></span><span class="dval" id="wVal">--</span></div>
-      <div class="meta"><span id="fishVal">鱼 --</span><span id="dayVal">昼</span><span id="filterVal">过滤开</span></div>
-      <div id="advice"></div>
+      <div class="meta"><span id="fishVal">鱼 --</span><span id="advice"></span></div>
     </div>
   </div>
   <button class="topBtn" id="bToolbox" aria-label="打开鱼缸管家">工具箱</button>
@@ -161,15 +156,15 @@ window.addEventListener('error',function(e){
     <button id="sheetX" aria-label="关闭">✕</button>
   </div>
   <div class="sheet-grid">
-    <button class="tile" id="bFeed"><span class="t-ico">食</span><span class="t-name">投食</span></button>
-    <button class="tile" id="bFish"><span class="t-ico">鱼</span><span class="t-name">加鱼</span></button>
-    <button class="tile" id="bWater"><span class="t-ico">水</span><span class="t-name">换水</span></button>
-    <button class="tile toggle on" id="bFilter"><span class="t-ico">滤</span><span class="t-name">过滤</span></button>
-    <button class="tile toggle on" id="bDay"><span class="t-ico">昼</span><span class="t-name">昼夜</span></button>
-    <button class="tile toggle on" id="bFx"><span class="t-ico">效</span><span class="t-name">特效</span></button>
-    <button class="tile" id="bTrim"><span class="t-ico">剪</span><span class="t-name">修剪</span></button>
-    <button class="tile danger" id="bFrenzy"><span class="t-ico">暴</span><span class="t-name">狂暴</span></button>
-    <button class="tile" id="bFs"><span class="t-ico">屏</span><span class="t-name">全屏</span></button>
+    <button class="tile" id="bFeed">投食</button>
+    <button class="tile" id="bFish">加鱼</button>
+    <button class="tile" id="bWater">换水</button>
+    <button class="tile toggle on" id="bFilter">过滤</button>
+    <button class="tile toggle on" id="bDay">昼夜</button>
+    <button class="tile toggle on" id="bFx">特效</button>
+    <button class="tile" id="bTrim">修剪</button>
+    <button class="tile danger" id="bFrenzy">狂暴</button>
+    <button class="tile" id="bFs">全屏</button>
   </div>
   <div class="sheet-foot">
     <div>投食→排泄→水质；水草+过滤净化；吃饱可产卵</div>
