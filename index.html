@@ -9,7 +9,7 @@
     -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
   canvas{display:block}
   /* —— 顶部工具条：水质 + 工具箱 同一行 —— */
-  #topBar{position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;z-index:6;
+  #topBar{touch-action:manipulation;position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;z-index:6;
     display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
   #dash{position:relative}
   #dashPill{display:flex;align-items:center;gap:7px;border:1px solid rgba(120,190,205,.35);
@@ -42,14 +42,16 @@
     background:rgba(20,80,60,.92);padding:8px 16px;border-radius:12px;
     opacity:0;transition:opacity .25s,translate .25s}
   #toast.show{opacity:1;translate:0 -4px}
+  #toast.urgent{background:rgba(170,52,32,.94)}
+  #dashLog{margin-top:6px;padding-top:6px;border-top:1px solid rgba(111,190,205,.25);max-width:70vw;font-size:10px;color:#9fb8bd;line-height:1.5}
+  #dashLog .lg{display:flex;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #dashLog .lt{color:#6f8f96;font-variant-numeric:tabular-nums;flex:0 0 auto}
+  #dashLog .lg:first-child{color:#d9f4f7}
   #credit{position:fixed;left:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;
     font-size:12px;letter-spacing:.2em;user-select:none;pointer-events:none;
     background:linear-gradient(180deg,#fff7cf 0%,#ffe27a 28%,#c9962e 52%,#ffdf6b 76%,#fff7cf 100%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.7));}
-  #hint{position:fixed;bottom:calc(30px + env(safe-area-inset-bottom));left:0;right:0;margin-inline:auto;width:fit-content;z-index:5;
-    color:rgba(255,255,255,.85);font-size:12px;background:rgba(2,20,30,.45);padding:6px 14px;border-radius:999px;
-    transition:opacity 1.5s;pointer-events:none;white-space:nowrap}
   /* —— 工具栏弹窗 —— */
   #sheetBg{position:fixed;inset:0;z-index:8;background:rgba(2,12,20,.62);
     opacity:0;pointer-events:none;transition:opacity .3s}
@@ -90,19 +92,8 @@
   #loading{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
     background:radial-gradient(ellipse at 50% 62%,#0c3348 0%,#06202e 42%,#04141d 100%);
     transition:opacity .35s ease;overflow:hidden;gap:24px}
-  #loading .turtle-wrap{position:relative;width:80px;height:80px;display:flex;align-items:center;justify-content:center}
-  #loading .ripple{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(125,211,252,.35);
-    animation:ripple 1.6s ease-out infinite;pointer-events:none}
-  #loading .ripple:nth-child(2){animation-delay:.55s}
-  #loading .ripple:nth-child(3){animation-delay:1.1s}
-  @keyframes ripple{0%{transform:scale(.55);opacity:.5}100%{transform:scale(1.5);opacity:0}}
-  #loading .logo{font-size:54px;line-height:1;position:relative;z-index:1;
-    filter:drop-shadow(0 6px 12px rgba(0,40,60,.4));
-    animation:swim 1.6s ease-in-out infinite}
-  @keyframes swim{
-    0%,100%{transform:translateY(0) rotate(-3deg)}
-    40%{transform:translateY(-9px) rotate(3deg)}
-    70%{transform:translateY(-3px) rotate(-1deg)}}
+  #loading .turtle-img{display:block;width:min(52vw,230px);height:auto;pointer-events:none;-webkit-user-drag:none;
+    filter:drop-shadow(0 6px 12px rgba(0,40,60,.45))}
   #loading .wavebar{width:140px;height:5px;border-radius:99px;background:rgba(255,255,255,.08);
     overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
   #loading .wavebar i{display:block;height:100%;width:40%;border-radius:99px;
@@ -168,10 +159,7 @@
 </head>
 <body>
 <div id="loading">
-  <div class="turtle-wrap">
-    <i class="ripple"></i><i class="ripple"></i><i class="ripple"></i>
-    <div class="logo">🐢</div>
-  </div>
+  <img class="turtle-img" src="./turtle.webp" alt="" width="360" height="225" decoding="async">
   <div class="wavebar"><i></i></div>
 </div>
 <!-- 新手引导 -->
@@ -224,13 +212,13 @@ window.addEventListener('error',function(e){
       <div class="drow"><span class="lab">氧气</span><span class="dbar"><i id="oFill"></i></span><span class="dval" id="oVal">--</span></div>
       <div class="drow"><span class="lab">废物</span><span class="dbar"><i id="wFill"></i></span><span class="dval" id="wVal">--</span></div>
       <div class="meta"><span id="fishVal">鱼 --</span><span id="advice"></span></div>
+      <div id="dashLog"></div>
     </div>
   </div>
   <button class="topBtn" id="bToolbox" aria-label="打开鱼缸管家">工具箱</button>
 </div>
 <div id="toast"></div>
 <div id="credit">TP制作</div>
-<div id="hint">点水面投食 · 点水草互动 · 点工具箱/长按开管家 · 拖动旋转</div>
 <div id="sheetBg"></div>
 <div id="sheet" role="dialog" aria-label="鱼缸管家">
   <div class="sheet-head">

@@ -67,7 +67,7 @@ function saveAch(){
 function unlockAch(id){
   if(Stats.achGot[id])return;Stats.achGot[id]=1;saveAch();
   const a=ACHS.find(x=>x.id===id);
-  toast('🏆 成就达成:'+a.icon+a.name);blip(880,0.25,0.1);
+  blip(880,0.25,0.1);
 }
 // 水下环境音(过滤噪声, 随音效开关)
 
@@ -156,7 +156,7 @@ renderer.shadowMap.enabled=!IS_MOBILE;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();
-  toast('GPU休息一下,正在恢复…');setTimeout(()=>location.reload(),1500);});
+  toast('GPU休息一下,正在恢复…','urgent');setTimeout(()=>location.reload(),1500);});
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,300);
 camera.position.set(3,11.5,37);
@@ -651,7 +651,7 @@ function updatePlants(dt){
 function trimPlants(silent){
   let n=0;
   for(const p of plantClusters)if(p.h>p.baseH*0.7){p.h*=0.62;Eco.waste=Math.min(1,Eco.waste+0.012);n++;p.flash=0.8;p.sway=(p.sway||0)+1.2;}
-  if(!silent)toast(n?'已修剪 '+n+' 丛水草':'水草还不需要修剪');
+  if(!silent)toast(n?'已修剪 '+n+' 丛水草':'水草还不需要修剪','manual');
   blip(420,0.12,0.09);
 }
 // 点击单丛: 过高→修剪; 健康不足→照料; 否则轻抚摇摆
@@ -660,18 +660,18 @@ function interactPlant(p){
   p.flash=1.0;p.sway=(p.sway||0)+1.5;
   if(p.h>p.baseH*1.2){
     p.h*=0.55;Eco.waste=Math.min(1,Eco.waste+0.01);
-    toast('修剪了这丛水草');blip(400,0.1,0.08);return true;
+    toast('修剪了这丛水草','manual');blip(400,0.1,0.08);return true;
   }
   if(p.health<0.75){
     p.health=Math.min(1,p.health+0.28);
     Eco.oxygen=Math.min(1,Eco.oxygen+0.04);
     p.growPulse=1;
     p.h=Math.min(p.baseH*1.2,p.h+0.08); // 照料后小幅抽高
-    toast('照料水草 状态好转');blip(520,0.1,0.08);return true;
+    toast('照料水草 状态好转','manual');blip(520,0.1,0.08);return true;
   }
   // 轻抚: 短暂增氧(搅动)
   Eco.oxygen=Math.min(1,Eco.oxygen+0.015);
-  toast('拨动了水草');blip(360,0.06,0.05);return true;
+  toast('拨动了水草','manual');blip(360,0.06,0.05);return true;
 }
 // 鱼啃食水草(饿了且附近有草)
 function fishGrazePlant(f,dt){
@@ -1084,9 +1084,9 @@ function fishDie(f,cause){
   if(!f.alive)return;f.alive=false;
   Eco.waste=Math.min(1,Eco.waste+(f.stage==='adult'?0.025:0.03));
   dropFood(f.grp.position.x,f.grp.position.z,1,true); // 尸体(乌龟会清理)
-  if(cause==='starve')toast('有鱼饿死了! 快投食');
-  else if(cause==='env')toast('水质恶化致死! 快换水');
-  else if(cause!=='eaten')toast('一条鱼死了');
+  if(cause==='starve')toast('有鱼饿死了! 快投食','urgent');
+  else if(cause==='env')toast('水质恶化致死! 快换水','urgent');
+  else if(cause!=='eaten')toast('一条鱼死了','urgent');
   blip(200,0.2,0.08,'triangle');
 }
 function fishStress(f){
@@ -1117,7 +1117,7 @@ function tryBreed(f,dt){
       const n=turtle.peaceful?RI(2,3):(chance(.4)?2:1);
       for(let i=0;i<n;i++)layEgg(p.x+R(-1.5,1.5),p.z+R(-1.5,1.5),f.hue,partner.hue,f.breed,partner.breed);
       f.breedCD=R(25,40);partner.breedCD=R(25,40);f.courtT=0;
-      toast('鱼产卵了!');blip(520,0.15,0.09);
+      blip(520,0.15,0.09);
     }
   }else f.courtT=0;
 }
@@ -1765,10 +1765,10 @@ function feed(x,z){
   // 还缺鱼食: 投放 3 粒鱼食(约够 3 条)
   if(hungry>fishFoodLeft){
     dropFood(x,z,FISH_PER_FEED,'fish');
-    toast('鱼食 x'+FISH_PER_FEED+(alive.length?` (约够${FISH_PER_FEED}条)`:''));
+    toast('鱼食 x'+FISH_PER_FEED+(alive.length?` (约够${FISH_PER_FEED}条)`:''),'manual');
   }else{
     dropFood(x,z,2,'turtle');
-    toast('龟粮');
+    toast('龟粮','manual');
   }
 }
 function updateFood(dt,t){
@@ -2054,29 +2054,56 @@ function tickBody(){
       const l=$('loading');
       if(l){l.classList.add('out');l.style.opacity='0';setTimeout(()=>l.remove(),380);}
       maybeOnboard();
-      setTimeout(()=>$('hint').style.opacity=0,9000);
     });}
 }
 
 // ---------- HUD: toast / 水状态仪表盘
 const toastEl=$('toast');
 
-function toast(msg){
+// 提示分档: 'urgent' 弹底部红框; 其余(常态)只记入水质面板的"最近动态"(最多6条)
+const INFO_MAX=6,infoLog=[];
+function logInfo(msg){
+  const d=new Date(),hm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  if(infoLog.length&&infoLog[0].m===msg)infoLog[0].t=hm;
+  else{infoLog.unshift({m:msg,t:hm});if(infoLog.length>INFO_MAX)infoLog.length=INFO_MAX;}
+  renderInfoLog();
+}
+function renderInfoLog(){
+  const el=document.getElementById('dashLog');if(!el)return;
+  el.innerHTML='';
+  if(!infoLog.length){el.textContent='暂无动态';return;}
+  for(const it of infoLog){
+    const r=document.createElement('div');r.className='lg';
+    const a=document.createElement('span');a.className='lt';a.textContent=it.t;
+    const b=document.createElement('span');b.textContent=it.m;
+    r.appendChild(a);r.appendChild(b);el.appendChild(r);
+  }
+}
+function toast(msg,level){
+  if(level!=='urgent'&&level!=='manual'){logInfo(msg);return;}   // 自动发生的常态消息 -> 最近动态
+  const item={m:msg,u:level==='urgent'};
+  if(item.u)UI.toastQ=UI.toastQ.filter(x=>x.u);                 // 紧急提示插队
   if(UI.toastQ.length>2)UI.toastQ.shift();
-  UI.toastQ.push(msg);
+  UI.toastQ.push(item);
+  if(item.u&&UI.toastTimer){clearTimeout(UI.toastTimer);UI.toastTimer=null;nextToast();return;}
   if(!UI.toastTimer)nextToast();
 }
 function nextToast(){
   const m=UI.toastQ.shift();
   if(!m){UI.toastTimer=null;return;}
-  toastEl.textContent=m;toastEl.classList.add('show');
+  toastEl.textContent=m.m;toastEl.classList.toggle('urgent',!!m.u);toastEl.classList.add('show');
   UI.toastTimer=setTimeout(()=>{
     toastEl.classList.remove('show');
     UI.toastTimer=setTimeout(nextToast,300);
-  },1500);
+  },m.u?2800:1500);
 }
 const dashEl=$('dash');
-$('dashPill').onclick=e=>{e.stopPropagation();dashEl.classList.toggle('open');};
+renderInfoLog();
+// 顶栏按钮: pointerdown 即触发, 700ms 内的合成 click 忽略(防重复切换)
+function fastTap(el,fn){let last=0;
+  el.addEventListener('pointerdown',e=>{e.stopPropagation();last=performance.now();fn(e);});
+  el.addEventListener('click',e=>{e.stopPropagation();if(performance.now()-last<700)return;fn(e);});}
+fastTap($('dashPill'),()=>{dashEl.classList.toggle('open');});
 const barColor=v=>v>0.55?'#3dcc7a':v>0.3?'#d4a017':'#d4452f';
 function advice(){
   const tips=[];
@@ -2121,23 +2148,24 @@ function waterAction(){
   Eco.waste*=0.45;Eco.oxygen=Math.min(1,Eco.oxygen+0.25);
   Stats.statWater++;saveAch();
   if(Stats.statWater>=10)unlockAch('water10');
-  toast('已换水, 水质提升');blip(360,0.15,0.09);
+  toast('已换水, 水质提升','manual');blip(360,0.15,0.09);
 }
 function filterAction(){
   Eco.filterOn=!Eco.filterOn;
   $('bFilter').classList.toggle('on',Eco.filterOn);
-  toast(Eco.filterOn?'过滤已开启':'过滤已关闭');
+  toast(Eco.filterOn?'过滤已开启':'过滤已关闭','manual');
   blip(Eco.filterOn?500:280,0.12,0.09);
 }
 function addFishAction(){
   const f=spawnRandomFish();
-  if(!f){toast('鱼缸满了!');blip(180,0.15,0.08);return;}
-  toast('新'+(BREEDS[f.breed]?BREEDS[f.breed].label:'鱼')+'入缸!');blip(640,0.12,0.09);
+  if(!f){toast('鱼缸满了!','manual');blip(180,0.15,0.08);return;}
+  toast('新'+(BREEDS[f.breed]?BREEDS[f.breed].label:'鱼')+'入缸!','manual');blip(640,0.12,0.09);
 }
 function dayAction(){
   Eco.dayTarget=Eco.dayTarget>0.5?0:1;
   $('bDay').classList.toggle('on',!!Eco.dayTarget);
-  toast(Eco.dayTarget?'白天':'夜晚');blip(Eco.dayTarget?700:300,0.15,0.09);
+  toast(Eco.dayTarget?'白天':'夜晚','manual');
+  blip(Eco.dayTarget?700:300,0.15,0.09);
 }
 $('bFeed').onclick=feedAction;
 $('bFish').onclick=addFishAction;
@@ -2145,12 +2173,12 @@ $('bWater').onclick=waterAction;
 $('bFilter').onclick=filterAction;
 $('bDay').onclick=dayAction;
 $('bFx').onclick=e=>{View.fx=!View.fx;const b=e.currentTarget;
-  b.classList.toggle('on',View.fx);bloom.enabled=View.fx&&!IS_MOBILE;toast(View.fx?'特效已开':'特效已关');};
+  b.classList.toggle('on',View.fx);bloom.enabled=View.fx&&!IS_MOBILE;toast(View.fx?'特效已开':'特效已关','manual');};
 $('bTrim').onclick=()=>trimPlants();
 $('bFrenzy').onclick=()=>{
   if(!turtle.grp)return;
   turtle.frenzy=true;turtle.frenzyTimer=20;turtle.state='hunt';
-  toast('乌龟狂暴20秒! 追逐鱼并吞废物');
+  toast('乌龟狂暴20秒! 追逐鱼并吞废物','manual');
   closeSheet();blip(140,0.3,0.12,'sawtooth');
 };
 // 全屏: 进/退切换, 兼容 webkit 前缀; 不支持时给出提示(尤其 iOS)
@@ -2173,11 +2201,11 @@ $('bFs').onclick=()=>{
     setTimeout(()=>{
       const on=isFullscreen();
       $('bFs').classList.toggle('on',on);
-      toast(on?'已全屏':'已退出全屏');
+      toast(on?'已全屏':'已退出全屏','manual');
       blip(on?520:320,0.1,0.07);
     },120);
   }).catch(()=>{
-    toast(IS_MOBILE?'当前浏览器不支持全屏':'全屏失败,请用浏览器菜单进入');
+    toast(IS_MOBILE?'当前浏览器不支持全屏':'全屏失败,请用浏览器菜单进入','urgent');
   });
 };
 document.addEventListener('fullscreenchange',()=>{$('bFs').classList.toggle('on',isFullscreen());});
@@ -2217,7 +2245,8 @@ const _swH=$('bHD');if(_swH){
   applyHD();
   _swH.onclick=()=>{View.hdOn=!View.hdOn;_swH.classList.toggle('on',View.hdOn);applyHD();
     try{localStorage.setItem('tank_hd',View.hdOn?'1':'0');}catch(e){}
-    toast(View.hdOn?'高清已开':'高清已关');blip(View.hdOn?640:300,0.1,0.07);};
+    toast(View.hdOn?'高清已开':'高清已关','manual');
+    blip(View.hdOn?640:300,0.1,0.07);};
 }
 // ---------- 新手引导(首次运行)
 const OB_STEPS=[
@@ -2259,8 +2288,8 @@ $('bAch').onclick=()=>{
 $('achX').onclick=()=>$('ach').classList.remove('show');
 $('ach').addEventListener('click',e=>{if(e.target.id==='ach')$('ach').classList.remove('show');});
 // 顶部工具箱按钮: 点按开关管家(去X后靠它+点背景关闭)
-$('bToolbox').onclick=e=>{e.stopPropagation();
-  $('sheet').classList.contains('open')?closeSheet():openSheet();};
+fastTap($('bToolbox'),()=>{
+  $('sheet').classList.contains('open')?closeSheet():openSheet();});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
 // ---------- 存档(localStorage, 5秒自动)
