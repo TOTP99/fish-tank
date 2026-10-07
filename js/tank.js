@@ -3,7 +3,6 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
-import {BokehPass} from 'three/addons/postprocessing/BokehPass.js';
 import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 
@@ -181,11 +180,9 @@ controls.addEventListener('start',()=>{controls.autoRotate=false;UI.idleT=0;});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight)});
 
-// ---------- 后期特效链: 渲染→景深→辉光→调色
+// ---------- 后期特效链: 渲染→泛光→调色(景深已删, 手机省性能)
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
-const bokeh=new BokehPass(scene,camera,{focus:30,aperture:.0011,maxblur:.0045});
-composer.addPass(bokeh);
 const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.32,.55,.85);
 composer.addPass(bloom);
 // film grade: vignette + subtle chromatic fringe + animated grain + cool tint
@@ -2081,7 +2078,6 @@ function tick(){
   updateWreckBubbles(rdt);
   grade.uniforms.uTint.value.lerpColors(TINT_MURK,TINT_CLEAR,1-U.uMurk.value).multiplyScalar(.4+.6*Eco.dayNight);
   grade.uniforms.uMurk.value=U.uMurk.value;
-  bokeh.uniforms.focus.value=camera.position.distanceTo(_v.set(0,9,0));
   updateHUD(rdt);
   UI.saveT+=rdt;if(UI.saveT>5){UI.saveT=0;saveGame();} // 5秒自动存档
   if(View.fx)composer.render();else renderer.render(scene,camera);
