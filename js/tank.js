@@ -782,7 +782,7 @@ function genGenome(){
   return g;}
 // 品种定向基因组(2D 三品种 → 3D 体型/尾鳍/游速/体色)
 function genGenomeFor(breed,hue){
-  const B=BREEDS[breed]||BREEDS.comet,g=genGenome();
+  const B=(BREEDS[breed]&&BREEDS[breed].len)?BREEDS[breed]:BREEDS.comet,g=genGenome();
   g.body=B.body;g.tail=B.tail;
   const hr={torpedo:R(.16,.22),deep:R(.45,.6),round:R(.5,.65),slender:R(.1,.15)}[g.body]||R(.28,.4);
   g.len=R(B.len[0],B.len[1]);g.h=g.len*hr;
@@ -1109,6 +1109,8 @@ function spawnFishByBreed(breed,stage,pos){
   const cfg=NEW_SPECIES.find(s=>s.breed===breed);
   if(cfg)return spawnNewFish(cfg,stage,pos);
   if(breed==='koi')return spawnKoi(stage,pos);
+  // 混种鱼('hybrid')下的蛋没有固定品种: 随机落成一种基础品种, 避免 BREEDS.hybrid 没有 len 导致崩溃
+  if(!BREEDS[breed]||!BREEDS[breed].len)breed=pick(['comet','fantail','pearl']);
   return spawnEcoFish(breed,Object.assign({},pick(PALETTES)),stage||'baby',pos);
 }
 function fishDie(f,cause){
@@ -1852,15 +1854,17 @@ function updateEggs(dt,t){
       scene.remove(e.mesh);
       if(fish.filter(f=>f.alive).length<MAX_FISH&&Eco.quality>0.3){
         const pos=e.mesh.position.clone();
-        if(e.breedA!==e.breedB){
-          spawnHybridFish(e.breedA,e.breedB,pos);
-          toast('混种小鱼孵化了!');unlockAch('hybrid');
-        }else{
-          spawnFishByBreed(e.breedA,'baby',pos);
-          toast('小鱼孵化了!');
-        }
-        unlockAch('first_hatch');
-        blip(700,0.12,0.08);
+        try{ // 某颗蛋孵化出错时丢弃这颗蛋, 不让它每帧重复报错卡住后面所有蛋
+          if(e.breedA!==e.breedB){
+            spawnHybridFish(e.breedA,e.breedB,pos);
+            toast('混种小鱼孵化了!');unlockAch('hybrid');
+          }else{
+            spawnFishByBreed(e.breedA,'baby',pos);
+            toast('小鱼孵化了!');
+          }
+          unlockAch('first_hatch');
+          blip(700,0.12,0.08);
+        }catch(err){console.error('[tank] 孵化失败,丢弃该蛋',err);}
       }
       continue;
     }
