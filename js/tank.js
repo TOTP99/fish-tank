@@ -155,6 +155,8 @@ renderer.toneMappingExposure=1.2;
 renderer.shadowMap.enabled=!IS_MOBILE;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
+renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();
+  toast('GPU休息一下,正在恢复…');setTimeout(()=>location.reload(),1500);});
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,300);
 camera.position.set(3,11.5,37);
@@ -174,6 +176,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
 const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.32,.55,.85);
+bloom.enabled=!IS_MOBILE; // 手机关泛光(最贵的全屏模糊),保留调色保水色
 composer.addPass(bloom);
 // film grade: vignette + subtle chromatic fringe + animated grain + cool tint
 const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uTime:{value:0},uTint:{value:new THREE.Color(1,1,1)},uMurk:{value:0}},
@@ -1756,7 +1759,7 @@ const bubMat=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:0,
   transparent:true,opacity:.35,clearcoat:1});
 const bubbles=[];
 const bubbleSrc=[new THREE.Vector3(-13,.2,-5),new THREE.Vector3(-6,.2,6)];
-for(let i=0;i<70;i++){
+for(let i=0;i<25;i++){
   const b=new THREE.Mesh(bubGeo,bubMat),s=bubbleSrc[i%2];
   b.position.set(s.x+R(-.3,.3),R(0,16),s.z+R(-.3,.3));
   b.scale.setScalar(R(.4,1.6));
@@ -2156,7 +2159,7 @@ $('bWater').onclick=waterAction;
 $('bFilter').onclick=filterAction;
 $('bDay').onclick=dayAction;
 $('bFx').onclick=e=>{View.fx=!View.fx;const b=e.currentTarget;
-  b.classList.toggle('on',View.fx);toast(View.fx?'特效已开':'特效已关');};
+  b.classList.toggle('on',View.fx);bloom.enabled=View.fx&&!IS_MOBILE;toast(View.fx?'特效已开':'特效已关');};
 $('bTrim').onclick=()=>trimPlants();
 $('bFrenzy').onclick=()=>{
   if(!turtle.grp)return;
