@@ -297,7 +297,8 @@ const causMesh=new THREE.Mesh(sandGeo,new THREE.ShaderMaterial({uniforms:U,
     }`}));
 scene.add(causMesh);
 // water surface seen from below: bright rippling web
-const surf=new THREE.Mesh(new THREE.PlaneGeometry(46,28,1,1).rotateX(Math.PI/2),
+// 平面贴合缸体(略大一点防边缘缝), 用矩形 fade 卡在玻璃内, 避免转视角时光影溢出
+const surf=new THREE.Mesh(new THREE.PlaneGeometry(TANK.w+.4,TANK.d+.4,1,1).rotateX(Math.PI/2),
   new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,
     blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
     vertexShader:`varying vec3 vW;
@@ -306,7 +307,9 @@ const surf=new THREE.Mesh(new THREE.PlaneGeometry(46,28,1,1).rotateX(Math.PI/2),
     fragmentShader:`uniform float uTime;uniform float uCaus;varying vec3 vW;
       ${causticGLSL}
       void main(){
-        float fade=1.-clamp(length(vW.xz)/34.,0.,1.);
+        float fadeX=1.-smoothstep(17.6,18.2,abs(vW.x));
+        float fadeZ=1.-smoothstep(8.6,9.2,abs(vW.z));
+        float fade=fadeX*fadeZ;
         float web=caustic(vW.xz*.32+vec2(uTime*.06,0.));
         gl_FragColor=vec4(vec3(.82,.95,1.)*(.07+web*.28)*uCaus*fade,1.);
       }`}));
@@ -323,43 +326,6 @@ topSurf.material.onBeforeCompile=s=>{
      transformed.z+=sin(position.x*.8+uTime*1.3)*.09+cos(position.y*.6+uTime*.9)*.09;`);
 };
 scene.add(topSurf);
-// ---------- 水下光柱 (god rays): 柔光带自水面斜射入水, 缓慢摇曳
-const rayTex=(()=>{
-  const c=document.createElement('canvas');c.width=64;c.height=256;
-  const g=c.getContext('2d');
-  const gr=g.createLinearGradient(0,0,0,256);
-  gr.addColorStop(0,'rgba(180,220,235,0)');gr.addColorStop(.12,'rgba(180,220,235,.5)');gr.addColorStop(.7,'rgba(150,200,220,.12)');
-  gr.addColorStop(1,'rgba(150,200,220,0)');
-  g.fillStyle=gr;g.fillRect(0,0,64,256);
-  // 横向柔边
-  const gx=g.createLinearGradient(0,0,64,0);
-  gx.addColorStop(0,'rgba(0,0,0,1)');gx.addColorStop(.18,'rgba(0,0,0,.8)');gx.addColorStop(.35,'rgba(0,0,0,.35)');gx.addColorStop(.5,'rgba(0,0,0,0)');
-  gx.addColorStop(.65,'rgba(0,0,0,.35)');gx.addColorStop(.82,'rgba(0,0,0,.8)');gx.addColorStop(1,'rgba(0,0,0,1)');
-  g.globalCompositeOperation='destination-out';g.fillStyle=gx;g.fillRect(0,0,64,256);
-  const t=new THREE.CanvasTexture(c);return t;
-})();
-const rays=[];
-{
-  const rayMat=new THREE.MeshBasicMaterial({map:rayTex,transparent:true,depthWrite:false,
-    blending:THREE.AdditiveBlending,side:THREE.DoubleSide,opacity:.5});
-  for(let i=0;i<0;i++){ // 光柱已去掉(数量 0), 代码保留以便需要时改回
-    const w=R(3.5,6);
-    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,20),rayMat.clone());
-    m.position.set(R(-14,4),TANK.water-9.5,R(-6,6));
-    m.rotation.z=R(.08,.16); // 统一朝一个方向斜射, 像同一束阳光
-    m.userData.ph=R(0,6);m.userData.baseO=R(.35,.55);
-    m.renderOrder=5;scene.add(m);rays.push(m);
-  }
-}
-function updateRays(t,dt){
-  const k=U.uCaus.value; // 夜晚减弱
-  for(const m of rays){
-    m.material.opacity+=(m.userData.baseO*k*(0.75+0.25*Math.sin(t*.5+m.userData.ph))-m.material.opacity)*Math.min(1,dt*2);
-    m.rotation.z=.12+Math.sin(t*.3+m.userData.ph)*.03;
-    m.rotation.y=Math.atan2(camera.position.x-m.position.x,camera.position.z-m.position.z); // 始终正对镜头, 侧看不再变成一条细线
-  }
-}
-
 // ---------- 玻璃缸 + 木框 + 底柜
 {
   // clear glass: high transmission, both faces
@@ -964,12 +930,12 @@ function buildFish(g){
 const fish=[],food=[];
 const bounds={xMin:-16.5,xMax:6.8,yMin:1,yMax:15,zMin:-8,zMax:8};
 const adultsAlive=()=>fish.filter(f=>f.alive&&f.stage==='adult').length;
-const STRESS_EMISSIVE=new THREE.Color(0xb05a28),BITE_EMISSIVE=new THREE.Color(0xff2814);
+const STRESS_EMISSIVE=new THREE.Color(0xb05a28);
 function addFishEntry(grp,U2,g,eco){
   const f=Object.assign({g,grp,U2,bodyMat:null,
     vel:new THREE.Vector3(R(-1,1),R(-.1,.1),R(-.3,.3)).setLength(g.speed*1.5),
     target:new THREE.Vector3(),tt:0,alive:true,
-    stage:'adult',age:R(20,60),hunger:R(.35,.6),armor:0,bites:0,biteFlash:0,
+    stage:'adult',age:R(20,60),hunger:R(.35,.6),
     breedCD:R(10,20),courtT:0,starveT:0,mode:'cruise',dartT:0,breed:null,hue:null,koi:false},
     eco||{});
   newTarget(f);scene.add(grp);fish.push(f);return f;}
@@ -1160,7 +1126,6 @@ function updateFish(f,dt,t){
   if(!f.alive)return;
   const P=f.grp.position,adult=f.stage==='adult';
   f.age+=dt;f.breedCD-=dt;
-  if(f.biteFlash>0)f.biteFlash=Math.max(0,f.biteFlash-dt);
   // 代谢
   f.hunger=Math.max(0,f.hunger-dt*(adult?0.005:0.011)); // 饿得慢: 成鱼约3分钟才见底
   Eco.waste=Math.min(1,Eco.waste+dt*(adult?0.0009:0.0006));
@@ -1228,7 +1193,6 @@ function updateFish(f,dt,t){
         // 谁先碰到谁吃
         best.userData.eaten=true;
         f.hunger=Math.min(1,f.hunger+0.42);
-        if(adult)f.armor=Math.min(1,f.armor+0.15);
         scene.remove(best);food.splice(food.indexOf(best),1);
         f.dartT=Math.max(f.dartT,0.35); // 吃到后小甩尾
       }
@@ -1359,7 +1323,6 @@ function updateFish(f,dt,t){
   if(f.bodyMat){
     const s=fishStress(f);
     f.bodyMat.emissive.copy(f.baseEmissive).lerp(STRESS_EMISSIVE,s*0.55);
-    if(f.biteFlash>0)f.bodyMat.emissive.lerp(BITE_EMISSIVE,Math.min(0.6,f.biteFlash));
   }
 }
 
@@ -2003,20 +1966,19 @@ renderer.domElement.addEventListener('pointerup',endPointer);
 renderer.domElement.addEventListener('pointercancel',()=>{UI.pdown=null;UI.lpFired=false;clearTimeout(UI.lpTimer);});
 
 // ---------- day / night
-const dayCfg={sun:3.4,sunCol:new THREE.Color(0xfff2dd),hemi:.9,bg:new THREE.Color(0x1a5a74),
+const dayCfg={sun:3.4,sunCol:new THREE.Color(0xfff2dd),hemi:.9,
   fog:.015,caus:1,lamp:30,exposure:1.2};
-const nightCfg={sun:.22,sunCol:new THREE.Color(0x8fb4dd),hemi:.22,bg:new THREE.Color(0x020d16),
+const nightCfg={sun:.22,sunCol:new THREE.Color(0x8fb4dd),hemi:.22,
   fog:.024,caus:.12,lamp:110,exposure:.95};
 const FOG_CLEAR=new THREE.Color(0x0d3a4d),FOG_MURK=new THREE.Color(0x2e3a1e);
 const TINT_CLEAR=new THREE.Color(0x9fc8dd),TINT_MURK=new THREE.Color(0xa8b06a);
 
-function applyDayNight(k,dt){
+function applyDayNight(dt){
   Eco.dayNight+=(Eco.dayTarget-Eco.dayNight)*Math.min(1,dt*1.5);
   const d=Eco.dayNight;
   sun.intensity=lerp(nightCfg.sun,dayCfg.sun,d);
   sun.color.lerpColors(nightCfg.sunCol,dayCfg.sunCol,d);
   hemi.intensity=lerp(nightCfg.hemi,dayCfg.hemi,d);
-  scene.fog.density=lerp(nightCfg.fog,dayCfg.fog,d);
   U.uCaus.value=lerp(nightCfg.caus,dayCfg.caus,d);
   lampLight.intensity=lerp(nightCfg.lamp,dayCfg.lamp,d);
   lampGlow.material.opacity=lerp(.95,.45,d);
@@ -2057,7 +2019,7 @@ function tick(){
 function tickBody(){
   const rdt=Math.min(clock.getDelta(),.05),dt=rdt,t=clock.elapsedTime;
   U.uTime.value=t;
-  applyDayNight(0,rdt);
+  applyDayNight(rdt);
   UI.idleT+=rdt;
   if(UI.idleT>10&&!controls.autoRotate)controls.autoRotate=true;
   controls.update();
@@ -2080,7 +2042,6 @@ function tickBody(){
   for(let i=0;i<mp.length;i+=3){mp[i+1]+=dt*.05;if(mp[i+1]>17)mp[i+1]=0}
   moteGeo.attributes.position.needsUpdate=true;
   grade.uniforms.uTime.value=t;
-  updateRays(t,rdt);
   updateWreckBubbles(rdt);
   grade.uniforms.uTint.value.lerpColors(TINT_MURK,TINT_CLEAR,1-U.uMurk.value).multiplyScalar(.4+.6*Eco.dayNight);
   grade.uniforms.uMurk.value=U.uMurk.value;
@@ -2088,13 +2049,17 @@ function tickBody(){
   UI.saveT+=rdt;if(UI.saveT>5){UI.saveT=0;saveGame();} // 5秒自动存档
   if(View.fx)composer.render();else renderer.render(scene,camera);
   if(UI.firstFrame){UI.firstFrame=false;
-    setTimeout(()=>{const l=$('loading');l.style.opacity=0;setTimeout(()=>l.remove(),900);
+    // 首帧渲染后尽快收起加载页
+    requestAnimationFrame(()=>{
+      const l=$('loading');
+      if(l){l.classList.add('out');l.style.opacity='0';setTimeout(()=>l.remove(),380);}
       maybeOnboard();
-      setTimeout(()=>$('hint').style.opacity=0,9000);},900);}
+      setTimeout(()=>$('hint').style.opacity=0,9000);
+    });}
 }
 
-// ---------- HUD: toast / 警报 / 水状态仪表盘
-const toastEl=$('toast'),alertEl=$('alert');
+// ---------- HUD: toast / 水状态仪表盘
+const toastEl=$('toast');
 
 function toast(msg){
   if(UI.toastQ.length>2)UI.toastQ.shift();
@@ -2146,12 +2111,6 @@ function updateHUD(dt){
   const bad=[['水质',1-Eco.quality,q+'%'],['氧气',1-Eco.oxygen,o+'%'],['废物',Eco.waste,w+'%']];
   bad.sort((a,b)=>b[1]-a[1]);
   $('dashMini').textContent=bad[0][0]+bad[0][2];
-  let msg='';
-  if(Eco.quality<0.18)msg='水质危险! 请换水';
-  else if(Eco.oxygen<0.2)msg='严重缺氧! 请开过滤';
-  $('dashPill').classList.toggle('warn',!!msg);
-  if(msg){alertEl.textContent=msg;alertEl.classList.add('show');}
-  else alertEl.classList.remove('show');
 }
 
 // ---------- 工具栏弹窗
@@ -2194,7 +2153,35 @@ $('bFrenzy').onclick=()=>{
   toast('乌龟狂暴20秒! 追逐鱼并吞废物');
   closeSheet();blip(140,0.3,0.12,'sawtooth');
 };
-$('bFs').onclick=()=>{closeSheet();document.documentElement.requestFullscreen?.();};
+// 全屏: 进/退切换, 兼容 webkit 前缀; 不支持时给出提示(尤其 iOS)
+function isFullscreen(){
+  return !!(document.fullscreenElement||document.webkitFullscreenElement);
+}
+function requestFS(el){
+  const fn=el.requestFullscreen||el.webkitRequestFullscreen||el.webkitRequestFullScreen;
+  return fn?fn.call(el):Promise.reject(new Error('unsupported'));
+}
+function exitFS(){
+  const fn=document.exitFullscreen||document.webkitExitFullscreen||document.webkitCancelFullScreen;
+  return fn?fn.call(document):Promise.reject(new Error('unsupported'));
+}
+$('bFs').onclick=()=>{
+  closeSheet();
+  const el=document.documentElement;
+  const go=isFullscreen()?exitFS():requestFS(el);
+  Promise.resolve(go).then(()=>{
+    setTimeout(()=>{
+      const on=isFullscreen();
+      $('bFs').classList.toggle('on',on);
+      toast(on?'已全屏':'已退出全屏');
+      blip(on?520:320,0.1,0.07);
+    },120);
+  }).catch(()=>{
+    toast(IS_MOBILE?'当前浏览器不支持全屏':'全屏失败,请用浏览器菜单进入');
+  });
+};
+document.addEventListener('fullscreenchange',()=>{$('bFs').classList.toggle('on',isFullscreen());});
+document.addEventListener('webkitfullscreenchange',()=>{$('bFs').classList.toggle('on',isFullscreen());});
 $('bResetT').onclick=()=>{
   showConfirm('重置鱼缸？','所有鱼、水质、存档将清空，回到开缸状态。',()=>{
     try{localStorage.removeItem(SAVE_KEY);}catch(e){}
@@ -2229,7 +2216,8 @@ const _swH=$('bHD');if(_swH){
     composer.setPixelRatio(r);composer.setSize(innerWidth,innerHeight);};
   applyHD();
   _swH.onclick=()=>{View.hdOn=!View.hdOn;_swH.classList.toggle('on',View.hdOn);applyHD();
-    try{localStorage.setItem('tank_hd',View.hdOn?'1':'0');}catch(e){}};
+    try{localStorage.setItem('tank_hd',View.hdOn?'1':'0');}catch(e){}
+    toast(View.hdOn?'高清已开':'高清已关');blip(View.hdOn?640:300,0.1,0.07);};
 }
 // ---------- 新手引导(首次运行)
 const OB_STEPS=[
@@ -2282,7 +2270,7 @@ function saveGame(){
   try{
     const snap={v:3,waste:Eco.waste,quality:Eco.quality,oxygen:Eco.oxygen,filterOn:Eco.filterOn,dayTarget:Eco.dayTarget,
       fishes:fish.filter(f=>f.alive).map(f=>({x:f.grp.position.x,y:f.grp.position.y,z:f.grp.position.z,
-        stage:f.stage,age:f.age,hunger:f.hunger,armor:f.armor,breed:f.breed,hue:f.hue,hybrid:f.hybrid,
+        stage:f.stage,age:f.age,hunger:f.hunger,breed:f.breed,hue:f.hue,hybrid:f.hybrid,
         breedCD:Math.max(0,f.breedCD)})),
       turtle:turtle.grp?{x:turtle.grp.position.x,y:turtle.grp.position.y,z:turtle.grp.position.z,
         hunger:turtle.hunger,belly:turtle.belly}:null,
@@ -2310,7 +2298,7 @@ function loadGame(){
       }else{
         f=spawnFishByBreed(d.breed||'comet',d.stage==='baby'?'baby':'adult',pos);
       }
-      if(f)Object.assign(f,{age:d.age??0,hunger:d.hunger??0.5,armor:d.armor??0,breedCD:d.breedCD??10});
+      if(f)Object.assign(f,{age:d.age??0,hunger:d.hunger??0.5,breedCD:d.breedCD??10});
     }
     if(s.turtle)Object.assign(turtle.grp.position,{x:s.turtle.x,y:s.turtle.y,z:s.turtle.z});
     Object.assign(turtle,{hunger:s.turtle?.hunger??0.35,belly:s.turtle?.belly??0});
