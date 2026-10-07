@@ -1747,7 +1747,7 @@ function updateTurtle(dt,t){
 // ---------- 微粒与气泡
 const moteGeo=new THREE.BufferGeometry();
 {
-  const N=1500,pos=new Float32Array(N*3);
+  const N=300,pos=new Float32Array(N*3);
   for(let i=0;i<N;i++){
     pos[i*3]=R(-17,17);pos[i*3+1]=R(0,17);pos[i*3+2]=R(-8.5,8.5);
   }
