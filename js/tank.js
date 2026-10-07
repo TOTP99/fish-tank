@@ -12,13 +12,14 @@ const R=(a,b)=>a+Math.random()*(b-a), RI=(a,b)=>Math.floor(R(a,b+1)), pick=a=>a[
 const $=id=>document.getElementById(id);
 const clamp=THREE.MathUtils.clamp, lerp=THREE.MathUtils.lerp;
 // 轻音效(WebAudio 合成, 首次交互后可用)
+const IS_MOBILE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||Math.min(innerWidth,innerHeight)<500;
 // ================= 接口层: 跨域可变状态的唯一归属 =================
 const Eco   = { waste:0.22, quality:0.9, oxygen:0.85, filterOn:true,   // 生态数值
                 dayNight:1, dayTarget:1,                                // 昼夜
                 autoWaterCD:0, autoFeedCD:0, autoFishCD:0, autoTrimCD:0, // 自动任务冷却
                 autoWatering:false };                                   // 自动换水进行中
 const Sfx   = { on:true, ac:null, ambNodes:null };                     // 音频
-const View  = { fx:true, hdOn:true, wreckBubbleT:0 };                   // 渲染开关 + 沉船气泡计时
+const View  = { fx:true, hdOn:!IS_MOBILE, wreckBubbleT:0 };                   // 渲染开关 + 沉船气泡计时
 const Stats = { achGot:{}, statClean:0, statWater:0 };                  // 成就统计
 const UI    = { idleT:0, toastTimer:null, toastQ:[], hudT:0,            // 界面瞬态
                 cfOk:null, obStep:0, saveT:0, firstFrame:true,
@@ -146,12 +147,12 @@ const RAMP_A=RAMP_PTS[0].clone();                    // 乌龟上岸起点
 const RAMP_B=RAMP_PTS[RAMP_PTS.length-1].clone();    // 晒背点
 
 // ---------- 渲染器 / 相机 / 控制器
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const renderer=new THREE.WebGLRenderer({powerPreference:'high-performance'});
+renderer.setPixelRatio(IS_MOBILE?1:Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.2;
-renderer.shadowMap.enabled=true;
+renderer.shadowMap.enabled=!IS_MOBILE;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 const scene=new THREE.Scene();
@@ -918,17 +919,18 @@ function swimMaterial(mat,U2){mat.onBeforeCompile=s=>{Object.assign(s.uniforms,U
   s.vertexShader='uniform float uPh;uniform float uAmp;uniform float uLen;\n'+s.vertexShader.replace('#include <begin_vertex>',swimChunk)};return mat;}
 function buildFish(g){
   const L=g.len,H=g.h,Wd=g.w,U2={uPh:{value:R(0,6)},uAmp:{value:.3},uLen:{value:L}};
-  const body=new THREE.SphereGeometry(1,48,24),p=body.attributes.position,uv=body.attributes.uv;
+  const body=new THREE.SphereGeometry(1,IS_MOBILE?24:48,IS_MOBILE?16:24),p=body.attributes.position,uv=body.attributes.uv;
   for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);const t=(y+1)/2;
     let prof=Math.pow(Math.max(0,Math.sin(Math.PI*Math.pow(t,g.headPow))),.75);
     prof*=Math.min(1,t<.15?.35+t*4.3:1);
     const top=x>0?(1+g.hump*Math.sin(Math.PI*t)):g.belly;
     p.setXYZ(i,y*L/2,x*H/2*prof*top,z*Wd/2*prof);uv.setXY(i,t,(x+1)/2);}
   body.computeVertexNormals();
-  const mat=swimMaterial(new THREE.MeshPhysicalMaterial({map:fishTexture(g),roughness:.32,metalness:.06,
-    clearcoat:1,clearcoatRoughness:.25,iridescence:g.shine,iridescenceIOR:1.4,sheen:.4,sheenColor:g.c2}),U2);
+  const bp={map:fishTexture(g),roughness:.32,metalness:.06};
+  if(!IS_MOBILE)Object.assign(bp,{clearcoat:1,clearcoatRoughness:.25,iridescence:g.shine,iridescenceIOR:1.4,sheen:.4,sheenColor:g.c2});
+  const mat=swimMaterial(new (IS_MOBILE?THREE.MeshStandardMaterial:THREE.MeshPhysicalMaterial)(bp),U2);
   const grp=new THREE.Group(),bm=new THREE.Mesh(body,mat);bm.castShadow=true;grp.add(bm);
-  const finMat=col=>swimMaterial(new THREE.MeshPhysicalMaterial({map:finTexture(col),transparent:true,opacity:g.finAlpha,
+  const finMat=col=>swimMaterial(new (IS_MOBILE?THREE.MeshStandardMaterial:THREE.MeshPhysicalMaterial)({map:finTexture(col),transparent:true,opacity:g.finAlpha,
     side:THREE.DoubleSide,roughness:.5,depthWrite:false}),U2);
   const fm=finMat(g.finCol),tm=g.tailCol===g.finCol?fm:finMat(g.tailCol);
   const mk=(pts,m)=>{const s=new THREE.Shape();s.moveTo(pts[0][0],pts[0][1]);
@@ -991,7 +993,7 @@ function newTarget(f){
   }
   f.tt=R(3.5,8);
 }
-function removeFish(f){scene.remove(f.grp);f.grp.traverse(o=>{if(o.material){o.material.map?.dispose?.();o.material.dispose?.()}});
+function removeFish(f){scene.remove(f.grp);f.grp.traverse(o=>{o.geometry?.dispose?.();if(o.material){o.material.map?.dispose?.();o.material.dispose?.()}});
   fish.splice(fish.indexOf(f),1);}
 // 生成器公共收尾: 建模 → 入场 → 登记
 function finishFish(g,eco,pos){
@@ -2188,7 +2190,7 @@ const _swS=$('bSound');if(_swS){
     if(Sfx.on)blip(600,0.1,0.06);};
 }
 
-try{View.hdOn=localStorage.getItem('tank_hd')!=='0';}catch(e){}
+try{const _hd=localStorage.getItem('tank_hd');if(_hd!==null)View.hdOn=_hd!=='0';}catch(e){}
 const _swH=$('bHD');if(_swH){
   _swH.classList.toggle('on',View.hdOn);
   const applyHD=()=>renderer.setPixelRatio(View.hdOn?Math.min(devicePixelRatio,2):1);
