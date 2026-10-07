@@ -1947,21 +1947,6 @@ function updateEco(dt){
   if(Eco.quality>0.999)unlockAch('eco100');
 }
 // TP 铜牌商标(纯装饰)
-const plaque=(()=>{
-  const c=document.createElement('canvas');c.width=320;c.height=96;
-  const x=c.getContext('2d');
-  const gr=x.createLinearGradient(0,0,0,96);
-  gr.addColorStop(0,'#7a3f16');gr.addColorStop(.5,'#d99a5c');gr.addColorStop(1,'#8a4b1f');
-  x.fillStyle=gr;x.fillRect(0,0,320,96);
-  x.strokeStyle='rgba(50,25,5,.9)';x.lineWidth=6;x.strokeRect(4,4,312,88);
-  x.fillStyle='#2a1505';x.font='700 46px Georgia,serif';
-  x.textAlign='center';x.textBaseline='middle';x.fillText('TP制作',160,52);
-  const m=new THREE.Mesh(new THREE.BoxGeometry(4.4,1.7,.2),
-    new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(c),
-      metalness:.65,roughness:.35,emissive:0x2a1205,emissiveIntensity:.5}));
-  m.position.set(0,-3.2,(TANK.d+2.4)/2+.12);
-  scene.add(m);return m;
-})();
 // 手势: 点按喂食 · 长按开管家 · 拖动旋转 · 双指缩放 · 10秒闲置自动环绕
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
 
@@ -2328,7 +2313,7 @@ spawnNewFish(NEW_SPECIES[2]);spawnNewFish(NEW_SPECIES[4]); // 黄吊 / 麒麟鱼
 // 读档(乌龟为同步程序化建模, 直接读)
 if(loadGame())setTimeout(()=>toast('已恢复上次的鱼缸'),600);
 
-window.__tank={camera,controls,scene,turtle,fish,food,eggs,plaque,lampLight,
+window.__tank={camera,controls,scene,turtle,fish,food,eggs,lampLight,
   spawnHybridFish,spawnFishByBreed,spawnNewFish,spawnRandomFish,NEW_SPECIES,BREEDS,
   layEgg,fishDie,dropFood,feed,trimPlants,turtleFindPrey,turtleEat,tryBreed,
   eco:()=>({waste:Eco.waste,quality:Eco.quality,oxygen:Eco.oxygen,filterOn:Eco.filterOn,dayTarget:Eco.dayTarget})};
