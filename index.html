@@ -161,7 +161,23 @@
   .switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
     background:#fff;transition:left .2s;box-shadow:0 2px 6px rgba(0,0,0,.3)}
   .switch.on::after{left:23px}
-  #dashPanel{transition:opacity .25s,transform .25s}
+  /* —— 成就弹窗（复用确认弹窗结构） —— */
+  #ach{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+    background:rgba(2,10,16,.6);backdrop-filter:blur(3px)}
+  #ach.show{display:flex}
+  #ach .card{width:min(300px,84vw);max-height:70vh;display:flex;flex-direction:column;
+    background:rgba(12,32,46,.98);border:1px solid rgba(125,211,252,.3);
+    border-radius:18px;padding:20px 18px;animation:pop .3s cubic-bezier(.2,1.4,.4,1)}
+  #ach .t{font-size:15px;font-weight:800;color:#fff;margin-bottom:12px;text-align:center}
+  #ach .list{overflow-y:auto;flex:1;min-height:0}
+  #ach .arow{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.06)}
+  #ach .arow .ic{font-size:22px;filter:grayscale(1);opacity:.4}
+  #ach .arow.got .ic{filter:none;opacity:1}
+  #ach .arow .nm{font-size:13px;font-weight:800;color:#8a9aa2}
+  #ach .arow.got .nm{color:#ffd76a}
+  #ach .arow .ds{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+  #ach .btn{margin-top:14px;padding:10px 0;border-radius:12px;border:none;font-size:13px;font-weight:800;
+    cursor:pointer;background:rgba(255,255,255,.1);color:#fff;flex:0 0 auto}
 </style>
 <script type="importmap">
 {"imports":{
@@ -200,6 +216,14 @@
       <button class="btn cancel" id="cfCancel">取消</button>
       <button class="btn danger" id="cfOk">确定</button>
     </div>
+  </div>
+</div>
+<!-- 成就 -->
+<div id="ach" role="dialog" aria-label="成就">
+  <div class="card">
+    <div class="t">🏆 成就</div>
+    <div class="list" id="achList"></div>
+    <button class="btn" id="achX">关闭</button>
   </div>
 </div>
 <script>
@@ -244,6 +268,7 @@ window.addEventListener('error',function(e){
     <button class="tile" id="bTrim">修剪</button>
     <button class="tile danger" id="bFrenzy">狂暴</button>
     <button class="tile" id="bFs">全屏</button>
+    <button class="tile" id="bAch">成就</button>
   </div>
   <div class="sheet-foot">
     <div class="setrow"><span>🔊 音效</span><button class="switch on" id="swSound" aria-label="音效开关"></button></div>
