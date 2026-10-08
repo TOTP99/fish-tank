@@ -42,7 +42,7 @@ function blip(freq=480,dur=0.14,vol=0.08,type='sine'){
   }catch(_){}
 }
 
-const MAX_FISH=36, MAX_BABIES=18, MAX_EGGS=9;
+const MAX_FISH=18, MAX_BABIES=18, MAX_EGGS=8;
 
 const ACHS=[
   {id:'first_hatch',icon:'🐣',name:'初生',desc:'孵化第一条小鱼'},
