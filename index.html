@@ -84,7 +84,7 @@
   #loading .turtle-img{display:block;width:min(36vw,161px);height:auto;pointer-events:none;-webkit-user-drag:none;
     filter:drop-shadow(0 6px 12px rgba(0,40,60,.45))}
   #loading .turtle-ring{position:relative;display:inline-block}
-  #loading .turtle-ring svg.ring{position:absolute;inset:-22px;width:calc(100% + 44px);height:calc(100% + 44px);
+  #loading .turtle-ring svg.ring{position:absolute;inset:-45px;width:calc(100% + 90px);height:calc(100% + 90px);
     pointer-events:none;transform:rotate(-90deg)}
   #loading .turtle-ring .ring .bg{fill:none;stroke:rgba(255,255,255,.14);stroke-width:6}
   #loading .turtle-ring .ring .fg{fill:none;stroke:url(#rainbowGrad);stroke-width:6;stroke-linecap:round}
@@ -189,7 +189,7 @@ window.__loadT0=Date.now();
   var C=2*Math.PI*54;
   fg.style.strokeDasharray=C;
   fg.style.strokeDashoffset=C;
-  var t0=Date.now(),dur=2800;
+  var t0=Date.now(),dur=6660;
   (function tick(){
     var k=Math.min(1,(Date.now()-t0)/dur);
     fg.style.strokeDashoffset=C*(1-k);

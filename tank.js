@@ -1988,7 +1988,7 @@ function tickBody(){
   if(UI.firstFrame){UI.firstFrame=false;
     requestAnimationFrame(()=>{
       const elapsed=Date.now()-(window.__loadT0||Date.now());
-      const wait=Math.max(0,2800-elapsed); // 引导页最少展示 2.8 秒
+      const wait=Math.max(0,6660-elapsed); // 引导页最少展示 6.66 秒
       setTimeout(()=>{
         const l=$('loading');
         if(l){l.classList.add('out');l.style.opacity='0';setTimeout(()=>l.remove(),380);}
