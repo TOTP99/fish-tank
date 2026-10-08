@@ -19,7 +19,7 @@ const Eco   = { waste:0.22, quality:0.9, oxygen:0.85, filterOn:true,   // 生态
                 autoWaterCD:0, autoFeedCD:0, autoFishCD:0, autoTrimCD:0, // 自动任务冷却
                 autoWatering:false };                                   // 自动换水进行中
 const Sfx   = { on:true, ac:null, ambNodes:null };                     // 音频
-const View  = { fx:true, hdOn:!IS_MOBILE, wreckBubbleT:0 };                   // 渲染开关 + 古堡气泡计时
+const View  = { fx:true, hdOn:!IS_MOBILE, wreckBubbleT:0 };                   // 渲染开关 + 破船气泡计时
 const Stats = { achGot:{}, statClean:0, statWater:0 };                  // 成就统计
 const UI    = { idleT:0, toastTimer:null, toastQ:[], hudT:0,            // 界面瞬态
                 cfOk:null, obStep:0, saveT:0, firstFrame:true,
@@ -430,53 +430,87 @@ function blade(color,height,width){
 const decor=new THREE.Group();scene.add(decor);
 // 石头
 for(let i=0;i<10;i++){const r=rock(R(.7,2.2));const x=R(-16,5.5),z=R(-7.5,7.5);
-  if(Math.abs(x+11)<5.2&&Math.abs(z-2)<3.4)continue; // 避开古堡
+  if(Math.abs(x+11)<6.2&&Math.abs(z-2)<4.2)continue; // 避开倒扣的破船
   r.position.set(x,R(-.3,.1),z);r.scale.y*=.7;decor.add(r)}
-// ---------- 彩色古堡小房子(小鱼躲避 / 玩耍的地方)
-// 正面(+z, 朝默认镜头)敞开, 小鱼可以游进游出; 狂暴时小鱼躲进屋里
-const shelterPos=new THREE.Vector3(-11,2.1,2.7);
+// ---------- 倒扣的破渔船(小鱼躲避 / 玩耍的地方)
+// 一条翻扣在沙地上的旧木划艇: 船底朝天、几块船板烂掉留出缺口, 一头被垫高, 小鱼可从两端和缺口游进船肚
+const BOAT={x:-11,z:2,rot:.35,L:4.2,RY:2.0,RZ:2.2};
+const shelterPos=new THREE.Vector3(BOAT.x,1.4,BOAT.z);
+// 船肚/船周围的一个随机点(按船的朝向换算成世界坐标)
+function shelterSpot(along,across,yLo,yHi){
+  const u=R(-along,along),v=R(-across,across),c=Math.cos(BOAT.rot),s=Math.sin(BOAT.rot);
+  return new THREE.Vector3(BOAT.x+u*c+v*s,R(yLo,yHi),BOAT.z-u*s+v*c);
+}
 {
-  const M=(c,r)=>new THREE.MeshStandardMaterial({color:c,roughness:r||.7});
-  const glow=new THREE.MeshStandardMaterial({color:0xffe9a8,emissive:0xffc860,emissiveIntensity:.55,roughness:.5});
-  const castle=new THREE.Group();
-  const add=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);castle.add(m);return m;};
-  const HW=5,HD=3.6,HH=3.6,T=.3; // 屋宽/深/高/墙厚
-  // 地板(粉)
-  add(new THREE.BoxGeometry(HW+.4,.18,HD+.4),M(0xffc2d9),0,.09,.3);
-  // 三面墙: 后(粉)、左(黄)、右(薄荷绿)
-  add(new THREE.BoxGeometry(HW,HH,T),M(0xff9ec4),0,HH/2,-1.5);
-  add(new THREE.BoxGeometry(T,HH,HD),M(0xffe27a),-HW/2+T/2,HH/2,.3);
-  add(new THREE.BoxGeometry(T,HH,HD),M(0x8fe3b8),HW/2-T/2,HH/2,.3);
-  // 正面门楣(紫)+ 两根彩色门柱
-  add(new THREE.BoxGeometry(HW,.7,T),M(0xb59cff),0,HH-.35,1.95);
-  add(new THREE.CylinderGeometry(.24,.24,HH-.7,12),M(0xff7a7a),-HW/2+.2,(HH-.7)/2,1.95);
-  add(new THREE.CylinderGeometry(.24,.24,HH-.7,12),M(0x5cc8ff),HW/2-.2,(HH-.7)/2,1.95);
-  // 屋顶: 四棱锥(红橙) + 旗杆小旗
-  const roofGeo=new THREE.ConeGeometry(3.2,2.2,4);roofGeo.rotateY(Math.PI/4);
-  const roof=add(roofGeo,M(0xff6b4a),0,HH+1.1,.3);roof.scale.set(1.25,1,.92);
-  add(new THREE.CylinderGeometry(.05,.05,1.3,6),M(0xf5f5f5),0,HH+2.65,.3);
-  const flag=add(new THREE.BoxGeometry(.8,.45,.05),M(0xffd23f),.4,HH+3,.3);
-  // 两座塔(蓝 / 橙)+ 锥顶(紫 / 青)
-  const tower=(x,wall,roofC)=>{
-    add(new THREE.CylinderGeometry(.95,1,5.6,16),M(wall),x,2.8,-.2);
-    add(new THREE.ConeGeometry(1.3,1.9,16),M(roofC),x,6.55,-.2);
-    // 塔身小窗(发光)
-    add(new THREE.BoxGeometry(.4,.65,.06),glow,x,4.2,.75);
-    add(new THREE.BoxGeometry(.4,.65,.06),glow,x,2.4,.78);
-    // 城垛环
-    add(new THREE.TorusGeometry(1.0,.1,6,20),M(0xffffff),x,5.6,-.2).rotation.x=Math.PI/2;
-  };
-  tower(-HW/2-.8,0x6fb6ff,0xa56bff);
-  tower(HW/2+.8,0xffa84d,0x30c9b0);
-  // 屋身侧面窗
-  for(const sx of [-1,1])add(new THREE.BoxGeometry(.06,.8,.7),glow,sx*(HW/2+.01),2.2,.3);
-  // 后墙圆窗
-  add(new THREE.CylinderGeometry(.4,.4,.06,14),glow,0,2.4,-1.64).rotation.x=Math.PI/2;
-  // 门前小台阶(浅蓝)
-  add(new THREE.BoxGeometry(2.4,.12,.7),M(0x9ad7ff),0,.06,2.5);
-  castle.position.set(-11,0,2);
-  castle.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true}});
-  decor.add(castle);
+  const grain=(()=>{
+    const c=document.createElement('canvas');c.width=256;c.height=128;
+    const g=c.getContext('2d');g.fillStyle='#c8c0b0';g.fillRect(0,0,256,128);
+    for(let i=0;i<60;i++){g.fillStyle=`rgba(${R(60,110)|0},${R(50,90)|0},${R(40,70)|0},${R(.12,.3)})`;
+      g.fillRect(R(0,256),R(0,128),R(20,90),R(1,2.5));}
+    for(let i=0;i<26;i++){g.fillStyle='rgba(235,235,225,.35)';g.beginPath(); // 剥落的漆斑
+      g.ellipse(R(0,256),R(0,128),R(3,12),R(2,6),R(0,3),0,6.3);g.fill();}
+    const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
+  })();
+  const paint=new THREE.MeshStandardMaterial({map:grain,color:0x6f9a96,roughness:.9,side:THREE.DoubleSide});   // 褪色青漆
+  const paint2=new THREE.MeshStandardMaterial({map:grain,color:0xb9a27a,roughness:.95,side:THREE.DoubleSide});  // 裸木
+  const dark=new THREE.MeshStandardMaterial({map:grain,color:0x5a4634,roughness:.95,side:THREE.DoubleSide});
+  const {L,RY,RZ}=BOAT,SH=.5;
+  const taper=x=>.4+.6*Math.sqrt(Math.max(0,1-(x/L)*(x/L)));
+  const boat=new THREE.Group();
+  // 一块船板: 沿船长 x0→x1, 绕船身弧度 a0→a1(0=一侧船舷, π/2=船底龙骨(朝天), π=另一侧船舷)
+  function plank(a0,a1,x0,x1,mat,broken){
+    const nu=10,nv=3,pos=[],idx=[];
+    for(let i=0;i<=nu;i++){
+      for(let j=0;j<=nv;j++){
+        let x=x0+(x1-x0)*i/nu;
+        if(broken&&i===nu)x+=R(-.7,.1);            // 断口参差不齐
+        const t=taper(x),a=a0+(a1-a0)*j/nv;
+        pos.push(x,RY*t*Math.sin(a)+SH*(x/L)*(x/L),RZ*t*Math.cos(a));
+      }
+    }
+    for(let i=0;i<nu;i++)for(let j=0;j<nv;j++){
+      const p=i*(nv+1)+j,q=p+nv+1;idx.push(p,q,p+1,p+1,q,q+1);
+    }
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    g.setIndex(idx);g.computeVertexNormals();
+    boat.add(new THREE.Mesh(g,mat));
+  }
+  const N=9,da=Math.PI/N;
+  for(let k=0;k<N;k++){
+    if(k===2||k===6)continue;                       // 烂掉的两块: 留出缺口
+    const broken=(k===3||k===7);
+    const mat=k===4?dark:(k%2?paint:paint2);
+    plank(k*da+.012,(k+1)*da-.012,-L,broken?L*.35:L,mat,broken);
+  }
+  // 肋骨(从缺口能看见)
+  for(const x of [-3,-1.5,0,1.5,3]){
+    const t=taper(x);
+    const rib=new THREE.Mesh(new THREE.TorusGeometry(1,.035,6,18,Math.PI),dark);
+    rib.rotation.y=Math.PI/2;rib.scale.set(RZ*t*.97,RY*t*.97,2.6);
+    rib.position.set(x,SH*(x/L)*(x/L),0);boat.add(rib);
+  }
+  boat.position.set(BOAT.x,.1,BOAT.z);boat.rotation.set(0,BOAT.rot,.1);
+  boat.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true}});
+  decor.add(boat);
+  // 船旁沙地里斜插着半截锚(下半截埋在沙里, 只露出锚杆、横杆和圆环)
+  {
+    const iron=new THREE.MeshStandardMaterial({color:0x5a4a3c,roughness:.85,metalness:.35});
+    const rust=new THREE.MeshStandardMaterial({color:0x8a5a38,roughness:.95,metalness:.1});
+    const anchor=new THREE.Group();
+    const part=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);anchor.add(m);return m;};
+    part(new THREE.CylinderGeometry(.12,.15,3.4,10),iron,0,1.7,0);                  // 锚杆
+    part(new THREE.TorusGeometry(.3,.065,8,18),rust,0,3.55,0);                       // 顶部圆环
+    part(new THREE.CylinderGeometry(.08,.08,1.9,8),iron,0,2.85,0).rotation.x=Math.PI/2; // 横杆(锚杆上部)
+    const arms=part(new THREE.TorusGeometry(1,.13,8,22,Math.PI),iron,0,.9,0);        // 弯臂(U形)
+    arms.rotation.z=Math.PI;
+    part(new THREE.ConeGeometry(.24,.65,8),rust,-1,.95,0).rotation.z=.55;           // 锚爪
+    part(new THREE.ConeGeometry(.24,.65,8),rust,1,.95,0).rotation.z=-.55;
+    anchor.position.set(BOAT.x+5.4,-.9,BOAT.z+2.6);                                  // 往下沉一截 = 半埋沙中
+    anchor.rotation.set(.18,.8,.38);                                                  // 歪斜着插在沙里
+    anchor.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true});
+    decor.add(anchor);
+  }
 }
 // ---------- 贝壳
 {
@@ -497,14 +531,14 @@ const shelterPos=new THREE.Vector3(-11,2.1,2.7);
     s.castShadow=s.receiveShadow=true;decor.add(s);
   }
 }
-// ---------- 古堡气泡: 屋里定时冒出一串气泡
-const wreckBubblePos=new THREE.Vector3(-11,2.2,2.7);
+// ---------- 破船气泡: 船肚里定时冒出一串气泡
+const wreckBubblePos=new THREE.Vector3(-11,1.3,2);
 
 function updateWreckBubbles(dt){
   View.wreckBubbleT-=dt;
   if(View.wreckBubbleT<=0){
     View.wreckBubbleT=R(6,12);
-    // 从古堡屋里放出一串气泡: 把已到顶的气泡重定位到屋内
+    // 从倒扣的破船肚里放出一串气泡: 把已到顶的气泡重定位到船肚
     let n=0;
     for(const b of bubbles){
       if(b.position.y>TANK.water-1&&n<5){
@@ -973,9 +1007,9 @@ function newTarget(f){
       lowO?R(TANK.water-4,TANK.water-1.5):night&&chance(.7)?R(1.5,4):R(bounds.yMin+1,bounds.yMax-2),
       R(bounds.zMin+1,bounds.zMax-1));
   }
-  // 小型鱼偶尔游到古堡里/周围玩耍(缺氧时不去)
-  if(!lowO&&!f.koi&&f.g.len<1.3&&chance(.22)){
-    f.target.set(shelterPos.x+R(-2.2,2.2),R(1.2,3.4),shelterPos.z+R(-1,2.2));
+  // 小型鱼偶尔游到破船肚里/周围玩耍(缺氧时不去)
+  if(!lowO&&!f.koi&&f.g.len<1.3&&chance(.33)){
+    f.target.copy(shelterSpot(4.6,1.6,1.0,2.8));
   }
   f.tt=R(3.5,8);
 }
@@ -1172,15 +1206,14 @@ function updateFish(f,dt,t){
       const score=cover*3-d*0.15;
       if(score>bs){bs=score;bp=p;bpd=d;}
     }
-    // 混合: 水草方向 60% + 背离乌龟 40%; 狂暴时小鱼 35% 概率躲进古堡
+    // 混合: 水草方向 60% + 背离乌龟 40%; 狂暴时小鱼 55% 概率躲进倒扣的破船
     if(T){
       _steer.set(P.x-T.position.x,0,P.z-T.position.z);
       if(_steer.lengthSq()>0.01)_steer.normalize();
-      if(turtle.frenzy&&f.g.len<1.3&&chance(.35)){
+      if(turtle.frenzy&&f.g.len<1.3&&chance(.55)){
         f.target.set(
-          clamp(shelterPos.x+R(-1.6,1.6),bounds.xMin,bounds.xMax),
-          clamp(shelterPos.y+R(-.8,.8),bounds.yMin,bounds.yMax),
-          clamp(shelterPos.z+R(-.9,.9),bounds.zMin,bounds.zMax));
+          ...(()=>{const q=shelterSpot(2.8,.8,1.0,1.7);return [
+            clamp(q.x,bounds.xMin,bounds.xMax),clamp(q.y,bounds.yMin,bounds.yMax),clamp(q.z,bounds.zMin,bounds.zMax)];})());
       }else f.target.set(
         clamp(bp.x+R(-1.2,1.2)+_steer.x*2.5,bounds.xMin,bounds.xMax),
         clamp(R(2,7)+_steer.y,bounds.yMin,bounds.yMax),
