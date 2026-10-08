@@ -344,10 +344,16 @@ scene.add(topSurf);
   wall(TANK.w,0,-hd,0);wall(TANK.w,0,hd,Math.PI);
   wall(TANK.d,-hw,0,Math.PI/2);wall(TANK.d,hw,0,-Math.PI/2);
   // glowing waterline rim
-  const rim=new THREE.Mesh(new THREE.BoxGeometry(TANK.w+.3,.18,TANK.d+.3),
-    new THREE.MeshStandardMaterial({color:0x9fd8ff,roughness:.2,metalness:.6,
-      emissive:0x2a4a5a,emissiveIntensity:.4}));
-  rim.position.y=TANK.water;scene.add(rim);
+  // 空心细框(只沿玻璃四边),不再是铺满缸口的实心盒子 —— 否则俯视时像一个有厚度的盖子
+  const rimMat=new THREE.MeshStandardMaterial({color:0x9fd8ff,roughness:.2,metalness:.6,
+    emissive:0x2a4a5a,emissiveIntensity:.4});
+  const RT=.14,RH=.1; // 框宽 / 框高
+  const rimBar=(w,d,px,pz)=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,RH,d),rimMat);
+    m.position.set(px,TANK.water,pz);scene.add(m);
+  };
+  rimBar(TANK.w+.3,RT,0,-hd-.08);rimBar(TANK.w+.3,RT,0,hd+.08);
+  rimBar(RT,TANK.d+.3,-hw-.08,0);rimBar(RT,TANK.d+.3,hw+.08,0);
   // frame bars
   const woodMat=new THREE.MeshStandardMaterial({color:0x6e4f30,roughness:.65});
   const bar=(w,h,d,px,py,pz)=>{
