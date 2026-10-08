@@ -1873,11 +1873,32 @@ function hideMag(){
   UI.mag=null;controls.enabled=true;magEl.classList.remove('show');
 }
 
+// 高清放大镜: 独立渲染目标做真实光学变焦, 非截图拉伸
+const MAG_PX=540;
+const magRT=new THREE.WebGLRenderTarget(MAG_PX,MAG_PX,{samples:4});
+const magPixels=new Uint8Array(MAG_PX*MAG_PX*4);
+const magImg=magCtx.createImageData(MAG_PX,MAG_PX);
 function drawMag(){
   if(!UI.mag)return;
-  const cv=renderer.domElement,k=cv.width/innerWidth,sw=MAG.size/MAG.zoom*k;
-  const sx=Math.min(Math.max(UI.mag.x*k-sw/2,0),cv.width-sw),sy=Math.min(Math.max(UI.mag.y*k-sw/2,0),cv.height-sw);
-  try{magCtx.drawImage(cv,sx,sy,sw,sw,0,0,magC.width,magC.height);}catch(_){}
+  const zw=MAG.size/MAG.zoom;
+  const sx=Math.min(Math.max(UI.mag.x-zw/2,0),innerWidth-zw);
+  const sy=Math.min(Math.max(UI.mag.y-zw/2,0),innerHeight-zw);
+  try{
+    camera.setViewOffset(innerWidth,innerHeight,sx,sy,zw,zw);
+    camera.updateProjectionMatrix();
+    renderer.setRenderTarget(magRT);
+    renderer.render(scene,camera);
+    renderer.setRenderTarget(null);
+    camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+    renderer.readRenderTargetPixels(magRT,0,0,MAG_PX,MAG_PX,magPixels);
+    const d=magImg.data,row=MAG_PX*4;
+    for(let y=0;y<MAG_PX;y++)d.set(magPixels.subarray((MAG_PX-1-y)*row,(MAG_PX-y)*row),y*row);
+    magCtx.putImageData(magImg,0,0);
+  }catch(_){
+    camera.clearViewOffset();camera.updateProjectionMatrix();
+    renderer.setRenderTarget(null);
+  }
 }
 
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
