@@ -991,7 +991,6 @@ function spawnKoi(stage,pos){
   const g=genGenome();
   g.body='torpedo';g.tail='fork';
   g.len=R(1.5,1.9);g.h=g.len*R(.2,.26);g.w=g.len*R(.16,.2);
-  if(stage==='baby'){g.len*=.45;g.h*=.45;g.w*=.45;}
   g.tailLen=R(.35,.5);g.tailH=R(.8,1.1);
   g.speed=R(.8,1.1);g.freq=4;g.cruise=1;g.school=false;
   g.c1=new THREE.Color(0xf7f4ec);g.c2=new THREE.Color(0xd8401f);
@@ -1020,7 +1019,6 @@ function spawnNewFish(cfg,stage,pos){
   const g=genGenome();
   g.body=cfg.body||'torpedo';g.tail=cfg.tail;
   g.len=R(cfg.len[0],cfg.len[1]);g.h=g.len*R(cfg.hR[0],cfg.hR[1]);g.w=g.len*R(.15,.19);
-  if(stage==='baby'){g.len*=.45;g.h*=.45;g.w*=.45;}
   g.tailLen=R(.3,.45);g.tailH=R(.7,1.0);
   g.speed=R(cfg.spd[0],cfg.spd[1]);g.freq=4.5;g.cruise=1;g.school=cfg.breed!=='shark';
   g.c1=new THREE.Color(cfg.c1);g.c2=new THREE.Color(cfg.c2);
@@ -1989,9 +1987,13 @@ function tickBody(){
   drawMag();
   if(UI.firstFrame){UI.firstFrame=false;
     requestAnimationFrame(()=>{
-      const l=$('loading');
-      if(l){l.classList.add('out');l.style.opacity='0';setTimeout(()=>l.remove(),380);}
-      maybeOnboard();
+      const elapsed=Date.now()-(window.__loadT0||Date.now());
+      const wait=Math.max(0,2800-elapsed); // 引导页最少展示 2.8 秒
+      setTimeout(()=>{
+        const l=$('loading');
+        if(l){l.classList.add('out');l.style.opacity='0';setTimeout(()=>l.remove(),380);}
+        maybeOnboard();
+      },wait);
     });}
 }
 
