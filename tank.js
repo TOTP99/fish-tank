@@ -380,7 +380,17 @@ function rock(r0,flat){
 function blade(color,height,width){
   const segs=14,g=new THREE.PlaneGeometry(width,height,1,segs);
   g.translate(0,height/2,0);
-  const m=new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,roughness:.6});
+  // 顶点色: 根部深 → 梢部亮, 增加层次
+  const pos=g.attributes.position,colors=new Float32Array(pos.count*3);
+  const cRoot=color.clone().multiplyScalar(.55),cTip=color.clone().offsetHSL(.02,.1,.18);
+  for(let i=0;i<pos.count;i++){
+    const k=Math.min(1,Math.max(0,pos.getY(i)/height));
+    const c=cRoot.clone().lerp(cTip,k*k);
+    colors[i*3]=c.r;colors[i*3+1]=c.g;colors[i*3+2]=c.b;
+  }
+  g.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  const m=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.55,
+    emissive:color.clone().multiplyScalar(.12)});
   const uPh={value:R(0,6)},uGrow={value:1},uBend={value:1};
   m.onBeforeCompile=s=>{
     s.uniforms.uTime=U.uTime;s.uniforms.uPh=uPh;
@@ -546,7 +556,7 @@ function updateWreckBubbles(dt){
 const plantClusters=[];
 const SICK_LEAF=new THREE.Color(0x8a7a3a);
 {
-  const greens=[hsl(.29,.6,.32),hsl(.33,.55,.28),hsl(.25,.65,.36),hsl(.36,.5,.3)];
+  const greens=[hsl(.29,.6,.32),hsl(.33,.55,.28),hsl(.25,.65,.36),hsl(.36,.5,.3),hsl(.42,.55,.35),hsl(.22,.7,.3)];
   function addCluster(cx,cz,blades,bh,bw){
     const grp=new THREE.Group();grp.position.set(cx,0,cz);decor.add(grp);
     const c={x:cx,z:cz,grp,h:0.55,hVis:0.55,health:1,baseH:1,blades:[],sway:0,swayDir:0,flash:0,growPulse:0,windPhase:R(0,6.28),windSpeed:R(.7,1.3)};
@@ -1526,7 +1536,8 @@ function turtleEat(target,kind){
     turtle.belly=Math.min(1,turtle.belly+0.15);
     Stats.statClean++;saveAch();
     if(Stats.statClean>=10)unlockAch('cleaner10');
-    if(before>0.05)toast('乌龟在吃废物');
+    if(before>0.05){toast('乌龟在吃废物');puffBubbles(turtle.grp.position.x,turtle.grp.position.y+.5,turtle.grp.position.z,5);}
+    else puffBubbles(turtle.grp.position.x,turtle.grp.position.y+.5,turtle.grp.position.z,3);
   }
   turtle.eatTimer=turtle.frenzy?0.25:0.5;
   blip(220,0.1,0.08);
@@ -1667,6 +1678,16 @@ for(let i=0;i<10;i++){
   scene.add(b);bubbles.push(b);
 }
 
+// 乌龟清废物时在嘴边冒几个小气泡
+const puffBubs=[];
+function puffBubbles(x,y,z,n){
+  for(let i=0;i<(n||4);i++){
+    const b=new THREE.Mesh(bubGeo,bubMat);
+    b.position.set(x+R(-.4,.4),y+R(0,.3),z+R(-.4,.4));
+    b.scale.setScalar(R(.5,1));
+    scene.add(b);puffBubs.push({m:b,life:R(1,1.6)});
+  }
+}
 const foodGeo=new THREE.IcosahedronGeometry(.09,0),
   foodMat=new THREE.MeshStandardMaterial({color:0xc07a2e,roughness:.9}),
   turtleFoodMat=new THREE.MeshStandardMaterial({color:0x3d8b5a,roughness:.55,emissive:0x1a4030,emissiveIntensity:.35}),
@@ -1972,6 +1993,9 @@ function tickBody(){
   safe('生态',()=>updateEco(dt));
   for(const f of fish)safe('鱼',()=>updateFish(f,dt,t));
   safe('乌龟',()=>{updateTurtle(dt,t);animTurtle(dt,t);});
+  for(let i=puffBubs.length-1;i>=0;i--){const p=puffBubs[i];p.life-=dt;
+    p.m.position.y+=dt*1.6;p.m.scale.multiplyScalar(1+dt*.6);
+    if(p.life<=0||p.m.position.y>TANK.water-.3){scene.remove(p.m);puffBubs.splice(i,1);}}
   for(const b of bubbles){b.position.y+=dt*(1.1+b.scale.x);
     b.position.x+=Math.sin(t*3+b.userData.s*2)*.005;
     if(b.position.y>TANK.water-.3){const s=bubbleSrc[b.userData.s];b.position.set(s.x+R(-.3,.3),.2,s.z+R(-.3,.3))}}
@@ -2087,10 +2111,10 @@ const openSheet=()=>{$('sheet').classList.add('open');$('sheetBg').classList.add
 const closeSheet=()=>{$('sheet').classList.remove('open');$('sheetBg').classList.remove('open');};
 function feedAction(){feed(R(-10,2),R(-5,5));blip(620,0.1,0.08);}
 function waterAction(){
-  Eco.waste*=0.45;Eco.oxygen=Math.min(1,Eco.oxygen+0.25);
+  Eco.waste=0;Eco.quality=1;Eco.oxygen=1;
   Stats.statWater++;saveAch();
   if(Stats.statWater>=10)unlockAch('water10');
-  toast('已换水, 水质提升','manual');blip(360,0.15,0.09);
+  toast('已换水, 水质100%','manual');blip(360,0.15,0.09);
 }
 function filterAction(){
   Eco.filterOn=!Eco.filterOn;
