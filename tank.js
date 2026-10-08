@@ -42,7 +42,7 @@ function blip(freq=480,dur=0.14,vol=0.08,type='sine'){
   }catch(_){}
 }
 
-const MAX_FISH=36, MAX_EGGS=8;
+const MAX_FISH=36, MAX_BABIES=18, MAX_EGGS=9;
 
 const ACHS=[
   {id:'first_hatch',icon:'🐣',name:'初生',desc:'孵化第一条小鱼'},
@@ -931,6 +931,8 @@ const fish=[],food=[];
 const bounds={xMin:-16.5,xMax:6.8,yMin:1,yMax:15,zMin:-8,zMax:8};
 const BMIN=new THREE.Vector3(bounds.xMin,bounds.yMin,bounds.zMin),BMAX=new THREE.Vector3(bounds.xMax,bounds.yMax,bounds.zMax);
 const aliveCount=()=>fish.filter(f=>f.alive).length;
+const adultCount=()=>fish.filter(f=>f.alive&&f.stage==='adult').length;
+const babyCount=()=>fish.filter(f=>f.alive&&f.stage!=='adult').length;
 const adultsAlive=()=>fish.filter(f=>f.alive&&f.stage==='adult').length;
 const STRESS_EMISSIVE=new THREE.Color(0xb05a28);
 function addFishEntry(grp,U2,g,eco){
@@ -1031,7 +1033,7 @@ function spawnNewFish(cfg,stage,pos){
 }
 
 function spawnRandomFish(){
-  if(aliveCount()>=MAX_FISH)return null;
+  if(adultCount()>=MAX_FISH)return null;
   const r=Math.random();
   let f;
   if(r<0.27){
@@ -1745,7 +1747,7 @@ function updateEggs(dt,t){
     if(Eco.quality<0.25&&chance(0.2*dt)){scene.remove(e.mesh);continue;}
     if(e.age>=e.hatchIn){
       scene.remove(e.mesh);
-      if(aliveCount()<MAX_FISH&&Eco.quality>0.3){
+      if(aliveCount()<MAX_FISH+MAX_BABIES&&babyCount()<MAX_BABIES&&Eco.quality>0.3){
         const pos=e.mesh.position.clone();
         try{
           if(e.breedA!==e.breedB){
@@ -2054,7 +2056,7 @@ function advice(){
   if(food.filter(f=>!f.userData.eaten&&!f.userData.corpse&&f.userData.age>6).length>2)tips.push('残饵多');
   const hungry=fish.filter(f=>f.alive&&f.hunger<0.25).length;
   if(hungry)tips.push(hungry+'条鱼饿');
-  if(aliveCount()>=MAX_FISH)tips.push('已满员');
+  if(aliveCount()>=MAX_FISH+MAX_BABIES)tips.push('已满员');
   return tips.slice(0,2).join(' · ')||'生态稳定 🌿';
 }
 
@@ -2257,7 +2259,7 @@ function loadGame(){
     Eco.filterOn=!!s.filterOn;Eco.dayTarget=s.dayTarget??1;
     if(!turtle.grp)return false;
     for(const d of s.fishes){
-      if(aliveCount()>=MAX_FISH)break;
+      if(aliveCount()>=MAX_FISH+MAX_BABIES)break;
       const pos=new THREE.Vector3(d.x??-6,d.y??6,d.z??0);
       let f;
       if(d.breed==='hybrid'&&d.hybrid){
