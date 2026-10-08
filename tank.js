@@ -19,7 +19,7 @@ const Eco   = { waste:0.22, quality:0.9, oxygen:0.85, filterOn:true,   // 生态
                 autoWaterCD:0, autoFeedCD:0, autoFishCD:0, autoTrimCD:0, // 自动任务冷却
                 autoWatering:false };                                   // 自动换水进行中
 const Sfx   = { on:true, ac:null, ambNodes:null };                     // 音频
-const View  = { fx:true, hdOn:!IS_MOBILE, wreckBubbleT:0 };                   // 渲染开关 + 沉船气泡计时
+const View  = { fx:true, hdOn:!IS_MOBILE, wreckBubbleT:0 };                   // 渲染开关 + 古堡气泡计时
 const Stats = { achGot:{}, statClean:0, statWater:0 };                  // 成就统计
 const UI    = { idleT:0, toastTimer:null, toastQ:[], hudT:0,            // 界面瞬态
                 cfOk:null, obStep:0, saveT:0, firstFrame:true,
@@ -347,13 +347,13 @@ scene.add(topSurf);
   // 空心细框(只沿玻璃四边),不再是铺满缸口的实心盒子 —— 否则俯视时像一个有厚度的盖子
   const rimMat=new THREE.MeshStandardMaterial({color:0x9fd8ff,roughness:.2,metalness:.6,
     emissive:0x2a4a5a,emissiveIntensity:.4});
-  const RT=.14,RH=.1; // 框宽 / 框高
+  const RT=.06,RH=.04; // 框宽 / 框高
   const rimBar=(w,d,px,pz)=>{
     const m=new THREE.Mesh(new THREE.BoxGeometry(w,RH,d),rimMat);
     m.position.set(px,TANK.water,pz);scene.add(m);
   };
-  rimBar(TANK.w+.3,RT,0,-hd-.08);rimBar(TANK.w+.3,RT,0,hd+.08);
-  rimBar(RT,TANK.d+.3,-hw-.08,0);rimBar(RT,TANK.d+.3,hw+.08,0);
+  rimBar(TANK.w+.2,RT,0,-hd-.03);rimBar(TANK.w+.2,RT,0,hd+.03);
+  rimBar(RT,TANK.d+.2,-hw-.03,0);rimBar(RT,TANK.d+.2,hw+.03,0);
   // frame bars
   const woodMat=new THREE.MeshStandardMaterial({color:0x6e4f30,roughness:.65});
   const bar=(w,h,d,px,py,pz)=>{
@@ -429,48 +429,54 @@ function blade(color,height,width){
 }
 const decor=new THREE.Group();scene.add(decor);
 // 石头
-for(let i=0;i<10;i++){const r=rock(R(.7,2.2));const x=R(-16,5.5);
-  r.position.set(x,R(-.3,.1),R(-7.5,7.5));r.scale.y*=.7;decor.add(r)}
-// ---------- 海盗沉船(鱼群躲避点)
-const shelterPos=new THREE.Vector3(-11,3.5,2);
+for(let i=0;i<10;i++){const r=rock(R(.7,2.2));const x=R(-16,5.5),z=R(-7.5,7.5);
+  if(Math.abs(x+11)<5.2&&Math.abs(z-2)<3.4)continue; // 避开古堡
+  r.position.set(x,R(-.3,.1),z);r.scale.y*=.7;decor.add(r)}
+// ---------- 彩色古堡小房子(小鱼躲避 / 玩耍的地方)
+// 正面(+z, 朝默认镜头)敞开, 小鱼可以游进游出; 狂暴时小鱼躲进屋里
+const shelterPos=new THREE.Vector3(-11,2.1,2.7);
 {
-  const woodTex=(()=>{
-    const c=document.createElement('canvas');c.width=256;c.height=128;
-    const g=c.getContext('2d');g.fillStyle='#5a4030';g.fillRect(0,0,256,128);
-    for(let y=0;y<128;y+=16){
-      g.fillStyle=`rgba(0,0,0,${R(.15,.3)})`;g.fillRect(0,y,256,2);
-      for(let i=0;i<20;i++){g.fillStyle=`rgba(${R(40,80)|0},${R(25,55)|0},${R(15,35)|0},.5)`;
-        g.fillRect(R(0,256),y+R(2,14),R(10,60),1.5);}
-    }
-    const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
-  })();
-  const woodMat=new THREE.MeshStandardMaterial({map:woodTex,roughness:.9,color:0x9a7a5a});
-  const darkWood=new THREE.MeshStandardMaterial({map:woodTex,roughness:.95,color:0x6a523e});
-  const ship=new THREE.Group();
-  // 船体: 半截圆筒, 倾斜半埋
-  const hull=new THREE.Mesh(new THREE.CylinderGeometry(3.2,2.6,9,10,1,true,-Math.PI*.7,Math.PI*1.4),woodMat);
-  hull.rotation.z=Math.PI/2;hull.rotation.y=.3;hull.material.side=THREE.DoubleSide;
-  ship.add(hull);
-  // 断桅
-  const mast=new THREE.Mesh(new THREE.CylinderGeometry(.22,.3,7,8),darkWood);
-  mast.position.set(1,3.5,0);mast.rotation.z=-.5;ship.add(mast);
-  const mastTop=new THREE.Mesh(new THREE.CylinderGeometry(.18,.22,3,8),darkWood);
-  mastTop.position.set(3.2,5.2,.3);mastTop.rotation.z=-1.1;ship.add(mastTop);
-  // 散落木板
-  for(let i=0;i<6;i++){
-    const pl=new THREE.Mesh(new THREE.BoxGeometry(R(1.5,3),.18,R(.5,.9)),i%2?woodMat:darkWood);
-    pl.position.set(R(-4,4),R(-2.4,-1),R(-3,3));pl.rotation.set(R(0,3),R(0,3),R(0,3));
-    ship.add(pl);
-  }
-  // 破帆布
-  const sail=new THREE.Mesh(new THREE.PlaneGeometry(3,2.2,4,3),new THREE.MeshStandardMaterial({color:0xcabfa8,roughness:1,side:THREE.DoubleSide}));
-  {const p=sail.geometry.attributes.position;
-   for(let i=0;i<p.count;i++)p.setZ(i,Math.sin(p.getX(i)*2)*.3+R(-.1,.1));
-   p.needsUpdate=true;}
-  sail.position.set(2.2,4.4,.5);sail.rotation.set(.2,.4,-.4);ship.add(sail);
-  ship.position.set(-11,-1.2,2);ship.rotation.y=.5;
-  ship.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true}});
-  decor.add(ship);
+  const M=(c,r)=>new THREE.MeshStandardMaterial({color:c,roughness:r||.7});
+  const glow=new THREE.MeshStandardMaterial({color:0xffe9a8,emissive:0xffc860,emissiveIntensity:.55,roughness:.5});
+  const castle=new THREE.Group();
+  const add=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);castle.add(m);return m;};
+  const HW=5,HD=3.6,HH=3.6,T=.3; // 屋宽/深/高/墙厚
+  // 地板(粉)
+  add(new THREE.BoxGeometry(HW+.4,.18,HD+.4),M(0xffc2d9),0,.09,.3);
+  // 三面墙: 后(粉)、左(黄)、右(薄荷绿)
+  add(new THREE.BoxGeometry(HW,HH,T),M(0xff9ec4),0,HH/2,-1.5);
+  add(new THREE.BoxGeometry(T,HH,HD),M(0xffe27a),-HW/2+T/2,HH/2,.3);
+  add(new THREE.BoxGeometry(T,HH,HD),M(0x8fe3b8),HW/2-T/2,HH/2,.3);
+  // 正面门楣(紫)+ 两根彩色门柱
+  add(new THREE.BoxGeometry(HW,.7,T),M(0xb59cff),0,HH-.35,1.95);
+  add(new THREE.CylinderGeometry(.24,.24,HH-.7,12),M(0xff7a7a),-HW/2+.2,(HH-.7)/2,1.95);
+  add(new THREE.CylinderGeometry(.24,.24,HH-.7,12),M(0x5cc8ff),HW/2-.2,(HH-.7)/2,1.95);
+  // 屋顶: 四棱锥(红橙) + 旗杆小旗
+  const roofGeo=new THREE.ConeGeometry(3.2,2.2,4);roofGeo.rotateY(Math.PI/4);
+  const roof=add(roofGeo,M(0xff6b4a),0,HH+1.1,.3);roof.scale.set(1.25,1,.92);
+  add(new THREE.CylinderGeometry(.05,.05,1.3,6),M(0xf5f5f5),0,HH+2.65,.3);
+  const flag=add(new THREE.BoxGeometry(.8,.45,.05),M(0xffd23f),.4,HH+3,.3);
+  // 两座塔(蓝 / 橙)+ 锥顶(紫 / 青)
+  const tower=(x,wall,roofC)=>{
+    add(new THREE.CylinderGeometry(.95,1,5.6,16),M(wall),x,2.8,-.2);
+    add(new THREE.ConeGeometry(1.3,1.9,16),M(roofC),x,6.55,-.2);
+    // 塔身小窗(发光)
+    add(new THREE.BoxGeometry(.4,.65,.06),glow,x,4.2,.75);
+    add(new THREE.BoxGeometry(.4,.65,.06),glow,x,2.4,.78);
+    // 城垛环
+    add(new THREE.TorusGeometry(1.0,.1,6,20),M(0xffffff),x,5.6,-.2).rotation.x=Math.PI/2;
+  };
+  tower(-HW/2-.8,0x6fb6ff,0xa56bff);
+  tower(HW/2+.8,0xffa84d,0x30c9b0);
+  // 屋身侧面窗
+  for(const sx of [-1,1])add(new THREE.BoxGeometry(.06,.8,.7),glow,sx*(HW/2+.01),2.2,.3);
+  // 后墙圆窗
+  add(new THREE.CylinderGeometry(.4,.4,.06,14),glow,0,2.4,-1.64).rotation.x=Math.PI/2;
+  // 门前小台阶(浅蓝)
+  add(new THREE.BoxGeometry(2.4,.12,.7),M(0x9ad7ff),0,.06,2.5);
+  castle.position.set(-11,0,2);
+  castle.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true}});
+  decor.add(castle);
 }
 // ---------- 贝壳
 {
@@ -491,14 +497,14 @@ const shelterPos=new THREE.Vector3(-11,3.5,2);
     s.castShadow=s.receiveShadow=true;decor.add(s);
   }
 }
-// ---------- 沉船气泡: 船体残骸里定时冒出一串气泡
-const wreckBubblePos=new THREE.Vector3(-11,2.2,2);
+// ---------- 古堡气泡: 屋里定时冒出一串气泡
+const wreckBubblePos=new THREE.Vector3(-11,2.2,2.7);
 
 function updateWreckBubbles(dt){
   View.wreckBubbleT-=dt;
   if(View.wreckBubbleT<=0){
     View.wreckBubbleT=R(6,12);
-    // 从沉船船体放出一串气泡: 把已到顶的气泡重定位到船舱口
+    // 从古堡屋里放出一串气泡: 把已到顶的气泡重定位到屋内
     let n=0;
     for(const b of bubbles){
       if(b.position.y>TANK.water-1&&n<5){
@@ -967,6 +973,10 @@ function newTarget(f){
       lowO?R(TANK.water-4,TANK.water-1.5):night&&chance(.7)?R(1.5,4):R(bounds.yMin+1,bounds.yMax-2),
       R(bounds.zMin+1,bounds.zMax-1));
   }
+  // 小型鱼偶尔游到古堡里/周围玩耍(缺氧时不去)
+  if(!lowO&&!f.koi&&f.g.len<1.3&&chance(.22)){
+    f.target.set(shelterPos.x+R(-2.2,2.2),R(1.2,3.4),shelterPos.z+R(-1,2.2));
+  }
   f.tt=R(3.5,8);
 }
 function removeFish(f){scene.remove(f.grp);f.grp.traverse(o=>{o.geometry?.dispose?.();if(o.material){o.material.map?.dispose?.();o.material.dispose?.()}});
@@ -1162,15 +1172,15 @@ function updateFish(f,dt,t){
       const score=cover*3-d*0.15;
       if(score>bs){bs=score;bp=p;bpd=d;}
     }
-    // 混合: 水草方向 60% + 背离乌龟 40%; 狂暴时小鱼 35% 概率躲进沉船
+    // 混合: 水草方向 60% + 背离乌龟 40%; 狂暴时小鱼 35% 概率躲进古堡
     if(T){
       _steer.set(P.x-T.position.x,0,P.z-T.position.z);
       if(_steer.lengthSq()>0.01)_steer.normalize();
       if(turtle.frenzy&&f.g.len<1.3&&chance(.35)){
         f.target.set(
-          clamp(shelterPos.x+R(-1.5,1.5),bounds.xMin,bounds.xMax),
-          clamp(shelterPos.y+R(-1,1),bounds.yMin,bounds.yMax),
-          clamp(shelterPos.z+R(-1.5,1.5),bounds.zMin,bounds.zMax));
+          clamp(shelterPos.x+R(-1.6,1.6),bounds.xMin,bounds.xMax),
+          clamp(shelterPos.y+R(-.8,.8),bounds.yMin,bounds.yMax),
+          clamp(shelterPos.z+R(-.9,.9),bounds.zMin,bounds.zMax));
       }else f.target.set(
         clamp(bp.x+R(-1.2,1.2)+_steer.x*2.5,bounds.xMin,bounds.xMax),
         clamp(R(2,7)+_steer.y,bounds.yMin,bounds.yMax),
