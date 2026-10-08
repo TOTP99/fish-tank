@@ -19,7 +19,7 @@ const Eco   = { waste:0.22, quality:0.9, oxygen:0.85, filterOn:true,   // 生态
                 autoWaterCD:0, autoFeedCD:0, autoFishCD:0, autoTrimCD:0, // 自动任务冷却
                 autoWatering:false };                                   // 自动换水进行中
 const Sfx   = { on:true, ac:null, ambNodes:null };                     // 音频
-const View  = { fx:true, hdOn:!IS_MOBILE, wreckBubbleT:0 };                   // 渲染开关 + 破船气泡计时
+const View  = { fx:true, hdOn:!IS_MOBILE, wreckBubbleT:0 };                   // 渲染开关 + 酒桶气泡计时
 const Stats = { achGot:{}, statClean:0, statWater:0 };                  // 成就统计
 const UI    = { idleT:0, toastTimer:null, toastQ:[], hudT:0,            // 界面瞬态
                 cfOk:null, obStep:0, saveT:0, firstFrame:true,
@@ -430,87 +430,96 @@ function blade(color,height,width){
 const decor=new THREE.Group();scene.add(decor);
 // 石头
 for(let i=0;i<10;i++){const r=rock(R(.7,2.2));const x=R(-16,5.5),z=R(-7.5,7.5);
-  if(Math.abs(x+11)<6.2&&Math.abs(z-2)<4.2)continue; // 避开倒扣的破船
+  if(Math.abs(x+11)<6.2&&Math.abs(z-2)<4.2)continue; // 避开酒桶
   r.position.set(x,R(-.3,.1),z);r.scale.y*=.7;decor.add(r)}
-// ---------- 倒扣的破渔船(小鱼躲避 / 玩耍的地方)
-// 一条翻扣在沙地上的旧木划艇: 船底朝天、几块船板烂掉留出缺口, 一头被垫高, 小鱼可从两端和缺口游进船肚
-const BOAT={x:-11,z:2,rot:.35,L:4.2,RY:2.0,RZ:2.2};
-const shelterPos=new THREE.Vector3(BOAT.x,1.4,BOAT.z);
-// 船肚/船周围的一个随机点(按船的朝向换算成世界坐标)
+// ---------- 酒桶躲避屋(小鱼躲避 / 玩耍的地方)
+// 一只横躺的旧木酒桶: 两端敞口, 正面桶壁烂出一个拱形缺口, 桶背爬满青苔; 小鱼可从两端和缺口游进桶肚
+const BARREL={x:-11,z:2,rot:.45,L:2.6,R:2.0};
+const shelterPos=new THREE.Vector3(BARREL.x,2.0,BARREL.z);
+// 桶肚/桶周围的一个随机点(按桶的朝向换算成世界坐标; along=沿桶轴, across=垂直桶轴的水平方向)
 function shelterSpot(along,across,yLo,yHi){
-  const u=R(-along,along),v=R(-across,across),c=Math.cos(BOAT.rot),s=Math.sin(BOAT.rot);
-  return new THREE.Vector3(BOAT.x+u*c+v*s,R(yLo,yHi),BOAT.z-u*s+v*c);
+  const u=R(-along,along),v=R(-across,across),c=Math.cos(BARREL.rot),s=Math.sin(BARREL.rot);
+  return new THREE.Vector3(BARREL.x+u*c+v*s,R(yLo,yHi),BARREL.z-u*s+v*c);
 }
 {
-  const grain=(()=>{
+  const {L,R:Rm}=BARREL;
+  const rAt=x=>Rm*(1-.2*(x/L)*(x/L));                 // 桶腹鼓、两端收
+  const woodTex=(()=>{
     const c=document.createElement('canvas');c.width=256;c.height=128;
-    const g=c.getContext('2d');g.fillStyle='#c8c0b0';g.fillRect(0,0,256,128);
-    for(let i=0;i<60;i++){g.fillStyle=`rgba(${R(60,110)|0},${R(50,90)|0},${R(40,70)|0},${R(.12,.3)})`;
-      g.fillRect(R(0,256),R(0,128),R(20,90),R(1,2.5));}
-    for(let i=0;i<26;i++){g.fillStyle='rgba(235,235,225,.35)';g.beginPath(); // 剥落的漆斑
-      g.ellipse(R(0,256),R(0,128),R(3,12),R(2,6),R(0,3),0,6.3);g.fill();}
+    const g=c.getContext('2d');g.fillStyle='#4a3626';g.fillRect(0,0,256,128);
+    for(let i=0;i<90;i++){g.fillStyle=`rgba(${R(120,190)|0},${R(80,120)|0},${R(40,70)|0},${R(.12,.32)})`;
+      g.fillRect(R(0,256),R(0,128),R(30,120),R(1,3));}
+    for(let i=0;i<40;i++){g.fillStyle=`rgba(20,12,8,${R(.2,.45)})`;g.fillRect(R(0,256),R(0,128),R(20,80),R(1,2));}
+    for(let i=0;i<34;i++){g.fillStyle=`rgba(${R(170,205)|0},${R(80,105)|0},${R(35,55)|0},${R(.25,.5)})`; // 铁锈色渗斑
+      g.beginPath();g.ellipse(R(0,256),R(0,128),R(6,26),R(2,7),0,0,6.3);g.fill();}
     const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
   })();
-  const paint=new THREE.MeshStandardMaterial({map:grain,color:0x6f9a96,roughness:.9,side:THREE.DoubleSide});   // 褪色青漆
-  const paint2=new THREE.MeshStandardMaterial({map:grain,color:0xb9a27a,roughness:.95,side:THREE.DoubleSide});  // 裸木
-  const dark=new THREE.MeshStandardMaterial({map:grain,color:0x5a4634,roughness:.95,side:THREE.DoubleSide});
-  const {L,RY,RZ}=BOAT,SH=.5;
-  const taper=x=>.4+.6*Math.sqrt(Math.max(0,1-(x/L)*(x/L)));
-  const boat=new THREE.Group();
-  // 一块船板: 沿船长 x0→x1, 绕船身弧度 a0→a1(0=一侧船舷, π/2=船底龙骨(朝天), π=另一侧船舷)
-  function plank(a0,a1,x0,x1,mat,broken){
-    const nu=10,nv=3,pos=[],idx=[];
-    for(let i=0;i<=nu;i++){
-      for(let j=0;j<=nv;j++){
-        let x=x0+(x1-x0)*i/nu;
-        if(broken&&i===nu)x+=R(-.7,.1);            // 断口参差不齐
-        const t=taper(x),a=a0+(a1-a0)*j/nv;
-        pos.push(x,RY*t*Math.sin(a)+SH*(x/L)*(x/L),RZ*t*Math.cos(a));
-      }
+  const mossTex=(()=>{
+    const c=document.createElement('canvas');c.width=128;c.height=128;
+    const g=c.getContext('2d');g.fillStyle='#62b238';g.fillRect(0,0,128,128);
+    for(let i=0;i<900;i++){const l=chance(.5);
+      g.fillStyle=l?`rgba(160,230,90,${R(.25,.6)})`:`rgba(40,100,30,${R(.25,.55)})`;
+      g.fillRect(R(0,128),R(0,128),R(1,3),R(1,3));}
+    const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
+  })();
+  const wood1=new THREE.MeshStandardMaterial({map:woodTex,color:0xb8a090,roughness:.9,side:THREE.DoubleSide});
+  const wood2=new THREE.MeshStandardMaterial({map:woodTex,color:0x8f7864,roughness:.95,side:THREE.DoubleSide});
+  const liner=new THREE.MeshStandardMaterial({color:0x1b140f,roughness:1,side:THREE.DoubleSide}); // 桶肚内壁(偏暗)
+  const hoopMat=new THREE.MeshStandardMaterial({color:0x9a5a30,roughness:.9,metalness:.15}); // 铁锈色
+  const mossMat=new THREE.MeshStandardMaterial({map:mossTex,color:0x8fd460,roughness:1});
+  const barrel=new THREE.Group();
+  // 一条桶板: 沿桶轴 x0→x1, 绕桶身弧度 a0→a1(0=正面, π/2=桶顶); 缺口边缘做参差不齐
+  function stave(a0,a1,x0,x1,mat,j0,j1){
+    const nu=6,nv=3,pos=[],uv=[],idx=[];
+    for(let i=0;i<=nu;i++)for(let j=0;j<=nv;j++){
+      let x=x0+(x1-x0)*i/nu;
+      if(j0&&i===0)x+=R(-.3,.3);
+      if(j1&&i===nu)x+=R(-.3,.3);
+      const r=rAt(x),a=a0+(a1-a0)*j/nv;
+      pos.push(x,r*Math.sin(a),r*Math.cos(a));uv.push((x+L)/(2*L)*2,j/nv);
     }
-    for(let i=0;i<nu;i++)for(let j=0;j<nv;j++){
-      const p=i*(nv+1)+j,q=p+nv+1;idx.push(p,q,p+1,p+1,q,q+1);
-    }
+    for(let i=0;i<nu;i++)for(let j=0;j<nv;j++){const p=i*(nv+1)+j,q=p+nv+1;idx.push(p,q,p+1,p+1,q,q+1);}
     const g=new THREE.BufferGeometry();
     g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
     g.setIndex(idx);g.computeVertexNormals();
-    boat.add(new THREE.Mesh(g,mat));
+    barrel.add(new THREE.Mesh(g,mat));
   }
-  const N=9,da=Math.PI/N;
+  const N=16,da=Math.PI*2/N;
+  const HOLE={0:1.9,1:1.6,2:.9,15:1.4};              // 正面几块桶板烂掉的长度(半宽) → 拱形缺口
   for(let k=0;k<N;k++){
-    if(k===2||k===6)continue;                       // 烂掉的两块: 留出缺口
-    const broken=(k===3||k===7);
-    const mat=k===4?dark:(k%2?paint:paint2);
-    plank(k*da+.012,(k+1)*da-.012,-L,broken?L*.35:L,mat,broken);
+    const a0=k*da+.012,a1=(k+1)*da-.012,mat=k%2?wood2:wood1;
+    if(HOLE[k]!==undefined){
+      const hw=HOLE[k]+R(-.15,.15),cx=-.2;
+      stave(a0,a1,-L,cx-hw,mat,false,true);
+      stave(a0,a1,cx+hw,L,mat,true,false);
+    }else stave(a0,a1,-L,L,mat,false,false);
   }
-  // 肋骨(从缺口能看见)
-  for(const x of [-3,-1.5,0,1.5,3]){
-    const t=taper(x);
-    const rib=new THREE.Mesh(new THREE.TorusGeometry(1,.035,6,18,Math.PI),dark);
-    rib.rotation.y=Math.PI/2;rib.scale.set(RZ*t*.97,RY*t*.97,2.6);
-    rib.position.set(x,SH*(x/L)*(x/L),0);boat.add(rib);
+  // 内壁(暗色)+ 两端木圈
+  const pts=[];for(let i=0;i<=12;i++){const x=-L+2*L*i/12;pts.push(new THREE.Vector2(rAt(x)*.93,x));}
+  barrel.add(new THREE.Mesh(new THREE.LatheGeometry(pts,28).rotateZ(Math.PI/2),liner));
+  for(const sx of [-1,1]){
+    const re=rAt(sx*L);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(re*.93,re*1.005,32).rotateY(Math.PI/2),wood2);
+    ring.position.x=sx*L;barrel.add(ring);
+    // 铁箍(靠近两端, 避开中间的缺口)
+    const hoop=new THREE.Mesh(new THREE.TorusGeometry(rAt(sx*(L-.45))+.03,.07,6,40),hoopMat);
+    hoop.rotation.y=Math.PI/2;hoop.position.x=sx*(L-.45);barrel.add(hoop);
   }
-  boat.position.set(BOAT.x,.1,BOAT.z);boat.rotation.set(0,BOAT.rot,.1);
-  boat.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true}});
-  decor.add(boat);
-  // 船旁沙地里斜插着半截锚(下半截埋在沙里, 只露出锚杆、横杆和圆环)
-  {
-    const iron=new THREE.MeshStandardMaterial({color:0x5a4a3c,roughness:.85,metalness:.35});
-    const rust=new THREE.MeshStandardMaterial({color:0x8a5a38,roughness:.95,metalness:.1});
-    const anchor=new THREE.Group();
-    const part=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);anchor.add(m);return m;};
-    part(new THREE.CylinderGeometry(.12,.15,3.4,10),iron,0,1.7,0);                  // 锚杆
-    part(new THREE.TorusGeometry(.3,.065,8,18),rust,0,3.55,0);                       // 顶部圆环
-    part(new THREE.CylinderGeometry(.08,.08,1.9,8),iron,0,2.85,0).rotation.x=Math.PI/2; // 横杆(锚杆上部)
-    const arms=part(new THREE.TorusGeometry(1,.13,8,22,Math.PI),iron,0,.9,0);        // 弯臂(U形)
-    arms.rotation.z=Math.PI;
-    part(new THREE.ConeGeometry(.24,.65,8),rust,-1,.95,0).rotation.z=.55;           // 锚爪
-    part(new THREE.ConeGeometry(.24,.65,8),rust,1,.95,0).rotation.z=-.55;
-    anchor.position.set(BOAT.x+5.4,-.9,BOAT.z+2.6);                                  // 往下沉一截 = 半埋沙中
-    anchor.rotation.set(.18,.8,.38);                                                  // 歪斜着插在沙里
-    anchor.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true});
-    decor.add(anchor);
+  // 青苔: 少量压扁的毛绒小丘, 只零星点缀在桶顶(缺口上方不盖)
+  function mossBlob(x,a,sx,sy,sz){
+    const g=new THREE.IcosahedronGeometry(1,2),p=g.attributes.position;
+    for(let i=0;i<p.count;i++){const k=R(.82,1.18);p.setXYZ(i,p.getX(i)*k,p.getY(i)*k,p.getZ(i)*k);}
+    g.computeVertexNormals();
+    const m=new THREE.Mesh(g,mossMat),r=rAt(x)+.03;
+    m.position.set(x,r*Math.sin(a),r*Math.cos(a));
+    m.rotation.x=Math.PI/2-a;m.rotation.y=R(0,6);
+    m.scale.set(sx,sy,sz);barrel.add(m);
   }
+  for(const x of [-1.6,-.3,1.1])mossBlob(x+R(-.2,.2),R(1.4,1.9),R(.45,.65),R(.16,.24),R(.45,.65)); // 桶顶只留三小团
+  barrel.position.set(BARREL.x,Rm-.12,BARREL.z);barrel.rotation.y=BARREL.rot;
+  barrel.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true}});
+  decor.add(barrel);
 }
 // ---------- 贝壳
 {
@@ -531,14 +540,14 @@ function shelterSpot(along,across,yLo,yHi){
     s.castShadow=s.receiveShadow=true;decor.add(s);
   }
 }
-// ---------- 破船气泡: 船肚里定时冒出一串气泡
-const wreckBubblePos=new THREE.Vector3(-11,1.3,2);
+// ---------- 酒桶气泡: 桶肚里定时冒出一串气泡
+const wreckBubblePos=new THREE.Vector3(-11,1.4,2);
 
 function updateWreckBubbles(dt){
   View.wreckBubbleT-=dt;
   if(View.wreckBubbleT<=0){
     View.wreckBubbleT=R(6,12);
-    // 从倒扣的破船肚里放出一串气泡: 把已到顶的气泡重定位到船肚
+    // 从酒桶肚里放出一串气泡: 把已到顶的气泡重定位到桶肚
     let n=0;
     for(const b of bubbles){
       if(b.position.y>TANK.water-1&&n<5){
@@ -1007,9 +1016,9 @@ function newTarget(f){
       lowO?R(TANK.water-4,TANK.water-1.5):night&&chance(.7)?R(1.5,4):R(bounds.yMin+1,bounds.yMax-2),
       R(bounds.zMin+1,bounds.zMax-1));
   }
-  // 小型鱼偶尔游到破船肚里/周围玩耍(缺氧时不去)
+  // 小型鱼偶尔游到酒桶肚里/周围玩耍(缺氧时不去)
   if(!lowO&&!f.koi&&f.g.len<1.3&&chance(.33)){
-    f.target.copy(shelterSpot(4.6,1.6,1.0,2.8));
+    f.target.copy(shelterSpot(3.6,1.6,1.0,3.0));
   }
   f.tt=R(3.5,8);
 }
@@ -1206,13 +1215,13 @@ function updateFish(f,dt,t){
       const score=cover*3-d*0.15;
       if(score>bs){bs=score;bp=p;bpd=d;}
     }
-    // 混合: 水草方向 60% + 背离乌龟 40%; 狂暴时小鱼 55% 概率躲进倒扣的破船
+    // 混合: 水草方向 60% + 背离乌龟 40%; 狂暴时小鱼 55% 概率躲进酒桶
     if(T){
       _steer.set(P.x-T.position.x,0,P.z-T.position.z);
       if(_steer.lengthSq()>0.01)_steer.normalize();
       if(turtle.frenzy&&f.g.len<1.3&&chance(.55)){
         f.target.set(
-          ...(()=>{const q=shelterSpot(2.8,.8,1.0,1.7);return [
+          ...(()=>{const q=shelterSpot(2.0,.8,1.2,2.6);return [
             clamp(q.x,bounds.xMin,bounds.xMax),clamp(q.y,bounds.yMin,bounds.yMax),clamp(q.z,bounds.zMin,bounds.zMax)];})());
       }else f.target.set(
         clamp(bp.x+R(-1.2,1.2)+_steer.x*2.5,bounds.xMin,bounds.xMax),
