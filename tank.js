@@ -21,7 +21,8 @@ const View  = { fx:true, hdOn:!IS_MOBILE, wreckBubbleT:0 };
 const Stats = { achGot:{}, statClean:0, statWater:0 };
 const UI    = { idleT:0, toastTimer:null, toastQ:[], hudT:0,
                 cfOk:null, obStep:0, saveT:0, firstFrame:true,
-                pdown:null, lpTimer:null, lpFired:false, mag:null };
+                pdown:null, lpTimer:null, lpFired:false, mag:null,
+                lampTimer:null, lampPress:false, lampLpFired:false };
 const Creatures = { genomeId:0 };
 function getAC(){
   if(!Sfx.ac)Sfx.ac=new (window.AudioContext||window.webkitAudioContext)();
@@ -705,6 +706,7 @@ function fishGrazePlant(f,dt){
 
 // ===== 取暖灯 =====
 const lampLight=new THREE.SpotLight(0xffc37a,30,45,.5,.45,1.6);
+let lampFixture=null; // 灯具组：点按藏鱼 / 长按乌龟爬出
 const lampGlow=(()=>{
   const c=document.createElement('canvas');c.width=c.height=128;
   const g=c.getContext('2d');
@@ -730,6 +732,7 @@ const lampGlow=(()=>{
   lampGlow.position.y=-.6;fixture.add(lampGlow);
   fixture.position.set(RAMP_B.x,27,RAMP_B.z);
   scene.add(fixture);
+  lampFixture=fixture;
   lampLight.position.set(RAMP_B.x,26.4,RAMP_B.z);
   lampLight.target.position.set(RAMP_B.x,RAMP_B.y,RAMP_B.z);
   scene.add(lampLight,lampLight.target);
@@ -945,6 +948,28 @@ const adultCount=()=>fish.filter(f=>f.alive&&f.stage==='adult').length;
 const babyCount=()=>fish.filter(f=>f.alive&&f.stage!=='adult').length;
 const adultsAlive=()=>fish.filter(f=>f.alive&&f.stage==='adult').length;
 const STRESS_EMISSIVE=new THREE.Color(0xb05a28);
+/* 点灯藏鱼：全局开关，新出生的鱼也跟随 */
+let fishHidden=false;
+function setFishHidden(h){
+  fishHidden=h;
+  for(const f of fish)if(f.grp&&f.alive)f.grp.visible=!h;
+  toast(h?'鱼儿躲起来了':'鱼儿回来了');
+}
+function lampToggleFish(){setFishHidden(!fishHidden);}
+/* 长按灯：乌龟慢慢爬出鱼缸消失；再长按一次爬回来 */
+function lampLongPress(){
+  const T=turtle;if(!T.grp)return;
+  if(T.gone){
+    T.gone=false;T.grp.visible=true;
+    T.grp.position.set(RAMP_B.x,24,RAMP_B.z);
+    T.grp.scale.setScalar(0.001);
+    T.state='climbBack';T.climbT=0;T.frenzy=false;
+    toast('乌龟回来了');
+  }else if(T.state!=='climbOut'&&T.state!=='climbBack'){
+    T.state='climbOut';T.climbT=0;T.frenzy=false;T.frenzyTimer=0;
+    toast('乌龟要出门散步了');
+  }
+}
 function addFishEntry(grp,U2,g,eco){
   const f=Object.assign({g,grp,U2,bodyMat:null,
     vel:new THREE.Vector3(R(-1,1),R(-.1,.1),R(-.3,.3)).setLength(g.speed*1.5),
@@ -952,7 +977,7 @@ function addFishEntry(grp,U2,g,eco){
     stage:'adult',age:R(20,60),hunger:R(.35,.6),
     breedCD:R(10,20),courtT:0,starveT:0,mode:'cruise',dartT:0,breed:null,hue:null,koi:false},
     eco||{});
-  newTarget(f);scene.add(grp);fish.push(f);return f;}
+  newTarget(f);scene.add(grp);grp.visible=!fishHidden;fish.push(f);return f;}
 function newTarget(f){
   const night=Eco.dayTarget<0.5,P=f.grp.position;
   const lowO=Eco.oxygen<0.25;
@@ -1466,6 +1491,7 @@ function animTurtle(dt,t){
   else if(T.state==='surface'||T.state==='toRamp'){freq=2.6;amp=.6;}
   else if(T.state==='climb'){freq=1.2;amp=.35;}
   else if(T.state==='slide'){freq=3;amp=.5;}
+  else if(T.state==='climbOut'||T.state==='climbBack'){freq=1.6;amp=.45;}
   else{rest=.5;}
   T._pad=(T._pad||0)+dt*freq;
   const p=T._pad;
@@ -1497,7 +1523,7 @@ function turtleFindPrey(){
       if(d<bd){bd=d;bt=fd;kind=fd.userData.corpse?'corpse':'turtleFood';}
     }
   }
-  if(turtle.frenzy){
+  if(turtle.frenzy&&!fishHidden){
     for(const f of fish){
       if(!f.alive)continue;
       const d=f.grp.position.distanceTo(T);
@@ -1546,7 +1572,7 @@ function faceVel(obj,vel,k,dt){
   if(vel.lengthSq()>.0004){_m.lookAt(_o,vel,_up);_q.setFromRotationMatrix(_m).multiply(_yr);
     obj.quaternion.slerp(_q,Math.min(1,dt*k));}}
 function updateTurtle(dt,t){
-  const T=turtle;if(!T.grp)return;const P=T.grp.position;
+  const T=turtle;if(!T.grp||T.gone)return;const P=T.grp.position;
   if(T.eatTimer>0)T.eatTimer-=dt;
   const night=Eco.dayTarget<0.5;
   if(T.frenzy){
@@ -1556,7 +1582,8 @@ function updateTurtle(dt,t){
       toast('乌龟冷静下来了');}
   }
   T.hunger=clamp(T.hunger+dt*0.01,0,1);
-  const under=T.state!=='surface'&&T.state!=='bask'&&T.state!=='climb'&&T.state!=='slide';
+  const under=T.state!=='surface'&&T.state!=='bask'&&T.state!=='climb'&&T.state!=='slide'
+    &&T.state!=='climbOut'&&T.state!=='climbBack';
   if(under)T.breath=Math.max(0,T.breath-dt*(T.state==='sleep'?0.004:0.02));
   else T.breath=Math.min(1,T.breath+dt*0.6);
   if(T.breath<0.25&&under){
@@ -1647,6 +1674,36 @@ function updateTurtle(dt,t){
     RAMP_CURVE.getTangent(Math.max(0,1-k),_tv);_tv.negate();T.vel.copy(_tv);
     faceVel(T.grp,T.vel,3,dt);
     if(T.climbT>=1){T.state='swim';T.t=R(30,60);T.baskTimer=R(22,32);turtleTarget();}
+  }else if(T.state==='climbOut'){
+    /* 长按灯：先游到灯下，再慢慢升出缸沿，最后缩小消失 */
+    T.climbT+=dt;
+    if(T.climbT<2){
+      _tv.set(RAMP_B.x-P.x,(TANK.water-1)-P.y,RAMP_B.z-P.z);
+      const d=_tv.length();
+      if(d>0.4){_tv.setLength(Math.min(2.4,d));T.vel.lerp(_tv,Math.min(1,dt*2.5));}
+      else T.vel.multiplyScalar(Math.max(0,1-dt*3));
+      P.addScaledVector(T.vel,dt);faceVel(T.grp,T.vel,2.5,dt);
+    }else if(T.climbT<4.6){
+      P.x+=(RAMP_B.x-P.x)*Math.min(1,dt*3);
+      P.z+=(RAMP_B.z-P.z)*Math.min(1,dt*3);
+      P.y+=dt*2.6;
+      _tv.set(0,1,0);faceVel(T.grp,_tv,2,dt);
+    }else{
+      const k=Math.min(1,(T.climbT-4.6)/1.1);
+      T.grp.scale.setScalar(Math.max(0.001,1-k));
+      if(k>=1){T.gone=true;T.grp.visible=false;}
+    }
+  }else if(T.state==='climbBack'){
+    /* 再长按灯：缸沿上方现身，慢慢沉回水里 */
+    T.climbT+=dt;
+    if(T.climbT<1){
+      T.grp.scale.setScalar(Math.max(0.001,T.climbT/1));
+    }else{
+      T.grp.scale.setScalar(1);
+      P.y-=dt*2.6;
+      _tv.set(0,-1,0);faceVel(T.grp,_tv,2,dt);
+      if(P.y<=TANK.water-1){P.y=TANK.water-1;T.state='swim';T.t=R(30,60);T.baskTimer=R(22,32);turtleTarget();}
+    }
   }
   if(T.state==='swim'||T.state==='hunt'||T.frenzy){
     plantSwayFrom(P.x,P.z,(T.frenzy?0.35:0.18)*dt*60);
@@ -1903,29 +1960,44 @@ function drawMag(){
 
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
 
-const TAP_LIM=8,LP_LIM=14,LP_MS=550;
+const TAP_LIM=8,LP_LIM=14,LP_MS=550,LAMP_LP_MS=600;
 renderer.domElement.addEventListener('pointerdown',e=>{
   UI.idleT=0;UI.lpFired=false;setAmbient(true);
   UI.pdown={x:e.clientX,y:e.clientY,t:performance.now()};
   $('dash').classList.remove('open');
   try{renderer.domElement.setPointerCapture(e.pointerId);}catch(_){}
-  clearTimeout(UI.lpTimer);
+  clearTimeout(UI.lpTimer);clearTimeout(UI.lampTimer);
+  UI.lampPress=false;UI.lampLpFired=false;
+  /* 灯检测：点中取暖灯则走灯手势，不启动放大镜 */
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  if(lampFixture&&ray.intersectObject(lampFixture,true).length){
+    UI.lampPress=true;
+    UI.lampTimer=setTimeout(()=>{UI.lampLpFired=true;lampLongPress();},LAMP_LP_MS);
+    return;
+  }
   UI.lpTimer=setTimeout(()=>{UI.lpFired=true;showMag(UI.pdown.x,UI.pdown.y);},LP_MS);
 });
 renderer.domElement.addEventListener('pointermove',e=>{
   if(UI.mag){moveMag(e.clientX,e.clientY);return;}
   if(!UI.pdown||UI.lpFired)return;
-  if(Math.hypot(e.clientX-UI.pdown.x,e.clientY-UI.pdown.y)>LP_LIM)clearTimeout(UI.lpTimer);
+  if(Math.hypot(e.clientX-UI.pdown.x,e.clientY-UI.pdown.y)>LP_LIM){
+    clearTimeout(UI.lpTimer);clearTimeout(UI.lampTimer);UI.lampPress=false;
+  }
 });
 const endPointer=e=>{
   if(!UI.pdown)return;
-  clearTimeout(UI.lpTimer);
-  const wasLp=UI.lpFired;
+  clearTimeout(UI.lpTimer);clearTimeout(UI.lampTimer);
+  const wasLp=UI.lpFired,wasLampPress=UI.lampPress,wasLampLp=UI.lampLpFired;
   hideMag();
   const moved=Math.hypot(e.clientX-UI.pdown.x,e.clientY-UI.pdown.y);
   const dtMs=performance.now()-UI.pdown.t;
-  UI.pdown=null;UI.lpFired=false;
+  UI.pdown=null;UI.lpFired=false;UI.lampPress=false;UI.lampLpFired=false;
   if(wasLp)return;
+  if(wasLampPress){
+    if(!wasLampLp&&moved<TAP_LIM&&dtMs<600)lampToggleFish();
+    return;
+  }
   if(moved<TAP_LIM&&dtMs<600){
     ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
     ray.setFromCamera(ndc,camera);
@@ -1950,7 +2022,7 @@ const endPointer=e=>{
   }
 };
 renderer.domElement.addEventListener('pointerup',endPointer);
-renderer.domElement.addEventListener('pointercancel',()=>{hideMag();UI.pdown=null;UI.lpFired=false;clearTimeout(UI.lpTimer);});
+renderer.domElement.addEventListener('pointercancel',()=>{hideMag();UI.pdown=null;UI.lpFired=false;UI.lampPress=false;UI.lampLpFired=false;clearTimeout(UI.lpTimer);clearTimeout(UI.lampTimer);});
 
 // ===== 昼夜 =====
 const dayCfg={sun:3.4,sunCol:new THREE.Color(0xfff2dd),hemi:.9,

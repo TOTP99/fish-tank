@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>🐢 3D生态缸</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#04141d;font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+  canvas{display:block}
+  #topBar{touch-action:manipulation;position:fixed;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;z-index:6;
+    display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
+  #dash{position:relative}
+  #dashPill{display:flex;align-items:center;gap:7px;border:1px solid rgba(120,190,205,.35);
+    border-radius:999px;background:rgba(8,18,26,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    color:#d9f4f7;font-size:11px;font-weight:800;padding:7px 12px;cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  #dashPill:active{transform:scale(.94)}
+  #dashPill .dot{width:8px;height:8px;border-radius:50%;background:#3dcc7a}
+  #dashPanel{display:none;margin-top:6px;background:rgba(8,18,26,.72);
+    border:1px solid rgba(111,190,205,.35);border-radius:14px;padding:10px 12px;min-width:180px;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 22px rgba(0,0,0,.4)}
+  #dash.open #dashPanel{display:block}
+  .drow{display:flex;align-items:center;gap:6px;margin:4px 0}
+  .drow .lab{font-size:10px;color:#9fb8bd;width:2em;font-weight:700}
+  .dbar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+  .dbar>i{display:block;height:100%;border-radius:3px;transition:width .4s}
+  .dval{font-size:10px;color:#eef6f8;width:3em;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  #dash .meta{display:flex;justify-content:flex-start;gap:8px;margin-top:5px;font-size:11px;color:#eef6f8;font-weight:700}
+  #advice{font-size:10px;color:#e0b25a;font-weight:700;line-height:1.4}
+  .topBtn{display:flex;align-items:center;gap:5px;border:1px solid rgba(120,190,205,.35);
+    border-radius:999px;background:rgba(8,18,26,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    color:#d9f4f7;font-size:11px;font-weight:800;padding:7px 12px;cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:nowrap;flex:0 0 auto}
+  .topBtn:active{transform:scale(.94)}
+  #toast{position:fixed;left:0;right:0;margin-inline:auto;width:fit-content;bottom:calc(30px + env(safe-area-inset-bottom));z-index:7;
+    pointer-events:none;font-size:12px;font-weight:800;color:#fff;white-space:nowrap;
+    background:rgba(20,80,60,.92);padding:8px 16px;border-radius:12px;
+    opacity:0;transition:opacity .25s,translate .25s}
+  #toast.show{opacity:1;translate:0 -4px}
+  #toast.urgent{background:rgba(170,52,32,.94)}
+  #dashLog{margin-top:6px;padding-top:6px;border-top:1px solid rgba(111,190,205,.25);max-width:70vw;font-size:10px;color:#9fb8bd;line-height:1.5}
+  #dashLog .lg{display:flex;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #dashLog .lt{color:#6f8f96;font-variant-numeric:tabular-nums;flex:0 0 auto}
+  #dashLog .lg:first-child{color:#d9f4f7}
+  #credit{position:fixed;left:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;
+    font-size:12px;letter-spacing:.2em;user-select:none;pointer-events:none;
+    background:linear-gradient(180deg,#fff7cf 0%,#ffe27a 28%,#c9962e 52%,#ffdf6b 76%,#fff7cf 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.7));}
+  #sheetBg{position:fixed;inset:0;z-index:8;background:rgba(2,12,20,.62);
+    opacity:0;pointer-events:none;transition:opacity .3s}
+  #sheetBg.open{opacity:1;pointer-events:auto}
+  #sheet{position:fixed;z-index:9;inset:0;margin:auto;width:min(252px,88vw);height:fit-content;max-height:94dvh;
+    display:flex;flex-direction:column;overflow:hidden;
+    translate:0 14px;opacity:0;pointer-events:none;
+    transition:translate .32s cubic-bezier(.2,1.4,.4,1),opacity .25s;
+    background:linear-gradient(165deg,rgba(23,52,70,.96),rgba(7,22,33,.97));
+    border:1px solid rgba(140,200,235,.28);border-radius:24px;
+    box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 40px rgba(64,140,190,.15),inset 0 1px 0 rgba(255,255,255,.12);
+    padding:16px 14px 14px;box-sizing:border-box}
+  #sheet.open{translate:0 0;opacity:1;pointer-events:auto}
+  .sheet-head{display:flex;align-items:center;justify-content:center;margin:0 2px 12px;flex:0 0 auto}
+  .sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 6px;justify-items:center;padding:2px 0}
+  .tile{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;
+    padding:0;border:1px solid rgba(255,226,120,.9);cursor:pointer;color:#3b2500;
+    font-size:12px;font-weight:700;letter-spacing:.1em;text-indent:.1em;line-height:1;
+    background:radial-gradient(circle at 50% 30%,rgba(255,240,150,1),rgba(244,184,36,.96) 55%,rgba(150,96,0,.98) 100%);
+    box-shadow:0 6px 0 rgba(0,0,0,.38),0 0 12px rgba(255,200,60,.35),0 12px 20px rgba(0,0,0,.42),
+      inset 0 2px 4px rgba(255,255,255,.45),inset 0 -4px 8px rgba(90,50,0,.35);
+    transition:box-shadow .12s,background .12s,color .12s,border-color .12s}
+  .tile.toggle.on{color:#eaf8ff;border-color:rgba(140,215,255,.95);
+    background:radial-gradient(circle at 50% 30%,rgba(170,230,255,1),rgba(46,140,225,.97) 55%,rgba(8,48,110,.98) 100%);
+    box-shadow:0 6px 0 rgba(0,20,40,.45),0 0 16px rgba(80,170,240,.55),0 12px 20px rgba(0,0,0,.42),
+      inset 0 2px 4px rgba(255,255,255,.4),inset 0 -4px 8px rgba(0,20,60,.35)}
+  #sheet .tile.press,#sheet .tile:active,#sheet .tile.toggle.on.press,#sheet .tile.toggle.on:active{
+    color:#fff;border-color:#ff9a90;
+    background:radial-gradient(circle at 50% 30%,rgba(255,150,130,1),rgba(232,36,36,1) 55%,rgba(120,0,0,1) 100%);
+    box-shadow:0 6px 0 rgba(60,0,0,.5),0 0 22px rgba(255,60,50,.95),0 0 44px rgba(255,60,50,.55),0 12px 20px rgba(0,0,0,.42),
+      inset 0 2px 4px rgba(255,255,255,.4),inset 0 -4px 8px rgba(80,0,0,.35)}
+  #loading{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 62%,#0c3348 0%,#06202e 42%,#04141d 100%);
+    transition:opacity .35s ease;overflow:hidden;gap:24px}
+  #loading .turtle-img{display:block;width:min(36vw,161px);height:auto;pointer-events:none;-webkit-user-drag:none;
+    filter:drop-shadow(0 6px 12px rgba(0,40,60,.45))}
+  #loading .turtle-ring{position:relative;display:inline-block}
+  #loading .turtle-ring svg.ring{position:absolute;inset:-45px;width:calc(100% + 90px);height:calc(100% + 90px);
+    pointer-events:none;transform:rotate(-90deg)}
+  #loading .turtle-ring .ring .bg{fill:none;stroke:rgba(255,255,255,.14);stroke-width:6}
+  #loading .turtle-ring .ring .fg{fill:none;stroke:url(#rainbowGrad);stroke-width:6;stroke-linecap:round}
+  #loading.out{pointer-events:none}
+  #onboard{position:fixed;inset:0;z-index:30;display:none;align-items:flex-end;justify-content:center;
+    background:rgba(2,10,16,.55);backdrop-filter:blur(2px)}
+  #onboard.show{display:flex}
+  #onboard .card{width:min(320px,86vw);margin-bottom:12vh;background:rgba(10,30,44,.96);
+    border:1px solid rgba(125,211,252,.25);border-radius:18px;padding:22px 20px;text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{opacity:0;translate:0 14px}}
+  #onboard .emoji{font-size:40px;margin-bottom:8px}
+  #onboard .t{font-size:16px;font-weight:800;color:#fff;margin-bottom:8px}
+  #onboard .d{font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.7;margin-bottom:16px}
+  #onboard .row{display:flex;gap:10px;justify-content:center}
+  #onboard .btn{padding:9px 26px;border-radius:999px;border:none;font-size:13px;font-weight:800;cursor:pointer}
+  #onboard .btn.primary{background:linear-gradient(180deg,#4db8ff,#2a7fc0);color:#fff}
+  #onboard .btn.ghost{background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.2)}
+  #onboard .dots{display:flex;gap:6px;justify-content:center;margin-bottom:14px}
+  #onboard .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25)}
+  #onboard .dots i.on{background:#4db8ff}
+  #confirm{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+    background:rgba(2,10,16,.72)}
+  #confirm.show{display:flex}
+  #confirm .card{width:min(300px,84vw);background:rgba(12,32,46,.98);border:1px solid rgba(255,120,90,.3);
+    border-radius:18px;padding:24px 20px;text-align:center;animation:pop .3s cubic-bezier(.2,1.4,.4,1)}
+  #confirm .t{font-size:15px;font-weight:800;color:#fff;margin-bottom:8px}
+  #confirm .d{font-size:12px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:18px}
+  #confirm .row{display:flex;gap:10px}
+  #confirm .btn{flex:1;padding:10px 0;border-radius:12px;border:none;font-size:13px;font-weight:800;cursor:pointer}
+  #confirm .btn.cancel{background:rgba(255,255,255,.1);color:#fff}
+  #confirm .btn.danger{background:linear-gradient(180deg,#e06040,#b03020);color:#fff}
+  #ach{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+    background:rgba(2,10,16,.72)}
+  #ach.show{display:flex}
+  #ach .card{width:min(300px,84vw);max-height:70vh;display:flex;flex-direction:column;
+    background:rgba(12,32,46,.98);border:1px solid rgba(125,211,252,.3);
+    border-radius:18px;padding:20px 18px;animation:pop .3s cubic-bezier(.2,1.4,.4,1)}
+  #ach .t{font-size:15px;font-weight:800;color:#fff;margin-bottom:12px;text-align:center}
+  #ach .list{overflow-y:auto;flex:1;min-height:0}
+  #ach .arow{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,.06)}
+  #ach .arow .ic{font-size:22px;filter:grayscale(1);opacity:.4}
+  #ach .arow.got .ic{filter:none;opacity:1}
+  #ach .arow .nm{font-size:13px;font-weight:800;color:#8a9aa2}
+  #ach .arow.got .nm{color:#ffd76a}
+  #ach .arow .ds{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+  #ach .btn{margin-top:14px;padding:10px 0;border-radius:12px;border:none;font-size:13px;font-weight:800;
+    cursor:pointer;background:rgba(255,255,255,.1);color:#fff;flex:0 0 auto}
+  #mag{position:fixed;left:0;top:0;width:150px;height:150px;z-index:10;pointer-events:none;display:none;
+    border-radius:50%;overflow:hidden;border:3px solid rgba(255,226,120,.95);
+    box-shadow:0 8px 24px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.35),inset 0 0 14px rgba(255,255,255,.25);background:#04141d}
+  #mag.show{display:block}
+  #mag canvas{display:block;width:100%;height:100%}
+  #mag::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;
+    border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="loading">
+  <div class="turtle-ring"><svg class="ring" viewBox="0 0 120 120"><defs><linearGradient id="rainbowGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff5b5b"/><stop offset="20%" stop-color="#ff9f43"/><stop offset="40%" stop-color="#ffd32a"/><stop offset="60%" stop-color="#7bed6f"/><stop offset="80%" stop-color="#4db8ff"/><stop offset="100%" stop-color="#9b7bff"/></linearGradient></defs><circle class="bg" cx="60" cy="60" r="54"/><circle class="fg" id="loadFg" cx="60" cy="60" r="54"/></svg><img class="turtle-img" src="./turtle.webp" alt="" width="360" height="225" decoding="async"></div>
+</div>
+<div id="onboard" role="dialog" aria-label="新手引导">
+  <div class="card">
+    <div class="emoji" id="obEmoji">👆</div>
+    <div class="t" id="obTitle">投食</div>
+    <div class="d" id="obDesc">点一下水面，就能在点击处投食。鱼儿会自己游过来吃。</div>
+    <div class="dots" id="obDots"><i class="on"></i><i></i><i></i></div>
+    <div class="row">
+      <button class="btn ghost" id="obSkip">跳过</button>
+      <button class="btn primary" id="obNext">下一步</button>
+    </div>
+  </div>
+</div>
+<div id="confirm" role="alertdialog" aria-label="确认">
+  <div class="card">
+    <div class="t" id="cfTitle">确定吗？</div>
+    <div class="d" id="cfDesc"></div>
+    <div class="row">
+      <button class="btn cancel" id="cfCancel">取消</button>
+      <button class="btn danger" id="cfOk">确定</button>
+    </div>
+  </div>
+</div>
+<div id="ach" role="dialog" aria-label="成就">
+  <div class="card">
+    <div class="t">🏆 成就</div>
+    <div class="list" id="achList"></div>
+    <button class="btn" id="achX">关闭</button>
+  </div>
+</div>
+<script>
+window.__loadT0=Date.now();
+(function(){
+  var fg=document.getElementById('loadFg');
+  if(!fg)return;
+  var C=2*Math.PI*54;
+  fg.style.strokeDasharray=C;
+  fg.style.strokeDashoffset=C;
+  var t0=Date.now(),dur=6660;
+  (function tick(){
+    var k=Math.min(1,(Date.now()-t0)/dur);
+    fg.style.strokeDashoffset=C*(1-k);
+    if(k<1&&document.getElementById('loading'))requestAnimationFrame(tick);
+  })();
+})();
+window.__bootT=setTimeout(function(){
+  var l=document.getElementById('loading');
+  if(l&&!window.__tank)l.innerHTML='加载失败<br><small>1. 请用 HTTP 托管(如 GitHub Pages)打开，file:// 直接打不开<br>2. 需要联网加载 three.js CDN</small>';
+},15000);
+window.addEventListener('error',function(e){
+  var l=document.getElementById('loading');
+  if(l&&!window.__tank)l.innerHTML='加载出错<br><small>'+(e.message||'未知错误')+'</small>';
+});
+</script>
+<div id="topBar">
+  <div id="dash">
+    <button id="dashPill" aria-label="水状态"><span class="dot" id="dQ"></span><span class="dot" id="dO"></span><span class="dot" id="dW"></span><span id="dashMini">--</span></button>
+    <div id="dashPanel">
+      <div class="drow"><span class="lab">水质</span><span class="dbar"><i id="qFill"></i></span><span class="dval" id="qVal">--</span></div>
+      <div class="drow"><span class="lab">氧气</span><span class="dbar"><i id="oFill"></i></span><span class="dval" id="oVal">--</span></div>
+      <div class="drow"><span class="lab">废物</span><span class="dbar"><i id="wFill"></i></span><span class="dval" id="wVal">--</span></div>
+      <div class="meta"><span id="fishVal">鱼 --</span><span id="advice"></span></div>
+      <div id="dashLog"></div>
+    </div>
+  </div>
+  <button class="topBtn" id="bToolbox" aria-label="打开鱼缸管家">工具箱</button>
+</div>
+<div id="toast"></div>
+<div id="credit">TP制作</div>
+<div id="mag" aria-hidden="true"><canvas id="magC" width="540" height="540"></canvas></div>
+<div id="sheetBg"></div>
+<div id="sheet" role="dialog" aria-label="鱼缸管家">
+  <div class="sheet-head">
+    <button id="bResetT">重置鱼缸</button>
+  </div>
+  <div class="sheet-grid">
+    <button class="tile" id="bFeed">投食</button>
+    <button class="tile" id="bFish">加鱼</button>
+    <button class="tile" id="bWater">换水</button>
+    <button class="tile toggle on" id="bFilter">过滤</button>
+    <button class="tile toggle on" id="bDay">昼夜</button>
+    <button class="tile toggle on" id="bFx">特效</button>
+    <button class="tile" id="bTrim">修剪</button>
+    <button class="tile" id="bFrenzy">狂暴</button>
+    <button class="tile toggle" id="bFs">全屏</button>
+    <button class="tile" id="bAch">成就</button>
+    <button class="tile toggle on" id="bSound">音效</button>
+    <button class="tile toggle on" id="bHD">高清</button>
+  </div>
+</div>
+<script>
+(function(){var g=document.getElementById('sheet');if(!g)return;
+function on(e){var t=e.target.closest&&e.target.closest('.tile');if(!t)return;t.classList.add('press');clearTimeout(t._pt);}
+function off(e){var t=e.target.closest&&e.target.closest('.tile');if(!t)return;clearTimeout(t._pt);t._pt=setTimeout(function(){t.classList.remove('press');},260);}
+g.addEventListener('pointerdown',on);g.addEventListener('pointerup',off);g.addEventListener('pointercancel',off);g.addEventListener('pointerleave',off,true);
+})();
+</script>
+<script type="module" src="./tank.js?v=20261026"></script>
+</body>
+</html>
