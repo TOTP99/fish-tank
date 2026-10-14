@@ -953,7 +953,8 @@ let fishHidden=false;
 function setFishHidden(h){
   fishHidden=h;
   for(const f of fish)if(f.grp&&f.alive)f.grp.visible=!h;
-  toast(h?'鱼儿躲起来了':'鱼儿回来了');
+  for(const e of eggs)if(e.mesh&&e.alive)e.mesh.visible=!h;
+  toast(h?'鱼和鱼卵躲起来了':'鱼和鱼卵回来了');
 }
 function lampToggleFish(){setFishHidden(!fishHidden);}
 /* 长按灯：乌龟慢慢爬出鱼缸消失；再长按一次爬回来 */
@@ -1811,6 +1812,7 @@ function layEgg(x,z,hueA,hueB,breedA,breedB){
   if(eggs.length>=MAX_EGGS)return;
   const m=new THREE.Mesh(eggGeo,eggMatBase.clone());
   m.position.set(x+R(-.8,.8),R(3,9),z+R(-.8,.8));
+  m.visible=!fishHidden;
   scene.add(m);
   eggs.push({mesh:m,x:m.position.x,z:m.position.z,age:0,hatchIn:R(10,15),alive:true,
     hueA:hueA||PALETTES[0],hueB:hueB||PALETTES[1],breedA:breedA||'comet',breedB:breedB||'comet'});
